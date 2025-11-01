@@ -237,8 +237,12 @@ const UserManagement: React.FC = () => {
                         <div>
                             <p className="font-semibold text-gray-800">{user.name}</p>
                             <p className="text-sm text-gray-500">{user.role}</p>
+                            <div className="mt-1 text-xs text-gray-600 space-x-2">
+                                <span>🎂 {user.birthday || '—'}</span>
+                                <span>🎉 {user.anniversary || '—'}</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2 self-end sm:self-center">
+                        <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
                             <button
                                 onClick={async () => {
                                     const newName = window.prompt('Neuen Namen eingeben', user.name)?.trim();
@@ -253,6 +257,34 @@ const UserManagement: React.FC = () => {
                                 className="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-sm"
                                 title="Namen ändern"
                             >Namen ändern</button>
+                            <button
+                                onClick={async () => {
+                                    const newBirthday = window.prompt('Geburtstag (YYYY-MM-DD) eingeben. Leer lassen für Entfernen.', user.birthday || '')?.trim();
+                                    if (newBirthday === undefined) return;
+                                    if (newBirthday && !/^\d{4}-\d{2}-\d{2}$/.test(newBirthday)) { alert('Bitte im Format YYYY-MM-DD eingeben.'); return; }
+                                    try {
+                                        updateUser(user.id, { birthday: newBirthday || null });
+                                    } catch (e: any) {
+                                        alert(e?.message || 'Geburtstag konnte nicht gespeichert werden.');
+                                    }
+                                }}
+                                className="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-sm"
+                                title="Geburtstag setzen"
+                            >🎂 setzen</button>
+                            <button
+                                onClick={async () => {
+                                    const newAnniv = window.prompt('Jubiläum (YYYY-MM-DD) eingeben. Leer lassen für Entfernen.', user.anniversary || '')?.trim();
+                                    if (newAnniv === undefined) return;
+                                    if (newAnniv && !/^\d{4}-\d{2}-\d{2}$/.test(newAnniv)) { alert('Bitte im Format YYYY-MM-DD eingeben.'); return; }
+                                    try {
+                                        updateUser(user.id, { anniversary: newAnniv || null });
+                                    } catch (e: any) {
+                                        alert(e?.message || 'Jubiläum konnte nicht gespeichert werden.');
+                                    }
+                                }}
+                                className="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-sm"
+                                title="Jubiläum setzen"
+                            >🎉 setzen</button>
                             <button
                                 onClick={async () => {
                                     const pw1 = window.prompt('Neues Passwort (mind. 8 Zeichen)') || '';

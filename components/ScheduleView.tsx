@@ -362,9 +362,17 @@ const ScheduleView: React.FC = () => {
                                             </div>
                                            
                                             <div className="space-y-1.5 mt-2">
-                                                {assignedUsers.map(assignedUser => (
+                                                {assignedUsers.map(assignedUser => {
+                                                    const md = dateString.slice(5); // MM-DD
+                                                    const hasBirthday = assignedUser.birthday ? assignedUser.birthday.slice(5) === md : false;
+                                                    const hasAnniversary = assignedUser.anniversary ? assignedUser.anniversary.slice(5) === md : false;
+                                                    return (
                                                     <div key={assignedUser.id} className={`flex items-center justify-between p-1.5 rounded text-sm font-medium ${user?.id === assignedUser.id ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-                                                        <span>{assignedUser.name}</span>
+                                                        <span className="flex items-center gap-1">
+                                                            {assignedUser.name}
+                                                            {hasBirthday && <span title="Geburtstag" className="ml-1">🎂</span>}
+                                                            {hasAnniversary && <span title="Jubiläum" className="ml-0.5">🎉</span>}
+                                                        </span>
                                                         <div className="flex items-center gap-1">
                                                             {(isAdmin || (user?.id === assignedUser.id && isWeekOpen)) && (
                                                                 <button onClick={() => handleSignOut(assignedUser.id)} className="text-red-500 hover:text-red-700 p-1" title="Austragen">
@@ -378,7 +386,8 @@ const ScheduleView: React.FC = () => {
                                                             )}
                                                         </div>
                                                     </div>
-                                                ))}
+                                                    );
+                                                })}
                                             </div>
                                             
                                             {isAdmin && !isFull && (
