@@ -237,6 +237,39 @@ const ScheduleView: React.FC = () => {
                                 {day.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
                             </p>
 
+                            {/* Admin-Übersicht: Wer ist abwesend (Urlaub/Seminar) */}
+                            {isAdmin && (() => {
+                                const dayAbs = absences.filter(a => a.date === dateString);
+                                if (dayAbs.length === 0) return null;
+                                return (
+                                    <div className="mb-3">
+                                        <div className="text-xs font-semibold text-gray-600 mb-1">Abwesend:</div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {dayAbs.map(a => {
+                                                const u = users.find(x => x.id === a.userId);
+                                                const label = a.type === 'VACATION' ? 'Urlaub' : 'Seminar';
+                                                return (
+                                                    <span key={a.id} className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-800 px-2 py-0.5 rounded-full text-xs">
+                                                        <span>{u?.name || a.userId} · {label}</span>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm('Abwesenheit wirklich entfernen?')) {
+                                                                    removeAbsence(a.id);
+                                                                }
+                                                            }}
+                                                            className="text-blue-700 hover:text-blue-900"
+                                                            title="Abwesenheit löschen"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
                             {/* Abwesenheit (Urlaub/Seminar) für aktuellen Nutzer */}
                             {user && (
                                 <div className="mb-3 flex items-center justify-center gap-2">

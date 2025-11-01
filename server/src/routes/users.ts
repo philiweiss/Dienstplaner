@@ -27,10 +27,10 @@ router.post('/', async (req, res) => {
   const parse = CreateUserSchema.safeParse(req.body);
   if (!parse.success) return res.status(400).json({ error: parse.error.format() });
   const id = randomUUID();
-  const { name, role } = parse.data;
+  const { name, role, birthday, anniversary } = parse.data;
   try {
-    await pool.query('INSERT INTO users (id, name, role) VALUES (?, ?, ?)', [id, name, role]);
-    res.status(201).json({ id, name, role });
+    await pool.query('INSERT INTO users (id, name, role, birthday, anniversary) VALUES (?, ?, ?, ?, ?)', [id, name, role, birthday ?? null, anniversary ?? null]);
+    res.status(201).json({ id, name, role, birthday: birthday ?? null, anniversary: anniversary ?? null });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to create user' });
@@ -39,7 +39,9 @@ router.post('/', async (req, res) => {
 
 const UpdateUserSchema = z.object({
   name: z.string().min(1).optional(),
-  role: z.enum(['User','Admin']).optional()
+  role: z.enum(['User','Admin']).optional(),
+  birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  anniversary: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
 });
 
 router.put('/:id', async (req, res) => {
@@ -53,6 +55,8 @@ router.put('/:id', async (req, res) => {
     const values: any[] = [];
     if (fields.name !== undefined) { sets.push('name=?'); values.push(fields.name); }
     if (fields.role !== undefined) { sets.push('role=?'); values.push(fields.role); }
+    if (fields.birthday !== undefined) { sets.push('birthday=?'); values.push(fields.birthday ?? null); }
+    if (fields.anniversary !== undefined) { sets.push('anniversary=?'); values.push(fields.anniversary ?? null); }
     values.push(id);
     await pool.query(`UPDATE users SET ${sets.join(', ')} WHERE id=?`, values);
     res.json({ id, ...fields });

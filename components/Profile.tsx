@@ -94,6 +94,43 @@ const Profile: React.FC = () => {
       </section>
 
       <section className="bg-white p-6 rounded-lg shadow">
+        <h3 className="text-lg font-semibold mb-4">Meine Statistik</h3>
+        {statsLoading ? (
+          <p className="text-sm text-gray-500">Lade Statistiken…</p>
+        ) : statsError ? (
+          <p className="text-sm text-red-600">{statsError}</p>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="px-3 py-2 bg-slate-100 rounded-md">
+                <div className="text-xs text-gray-500">Gesamt</div>
+                <div className="text-lg font-semibold">{stats?.total ?? 0}</div>
+              </div>
+              <div className="px-3 py-2 bg-slate-100 rounded-md">
+                <div className="text-xs text-gray-500">Letzte Schicht</div>
+                <div className="text-lg font-semibold">{stats?.lastDate ?? '—'}</div>
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-medium text-gray-700 mb-2">Nach Schichtart</div>
+              {(!stats || stats.byShiftType.length === 0) ? (
+                <p className="text-sm text-gray-500">Noch keine Schichten erfasst.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {stats.byShiftType.map(s => (
+                    <span key={s.shiftTypeId} className={`inline-flex items-center gap-2 px-3 py-1 rounded ${s.color}`}>
+                      <span className="text-xs font-semibold">{s.name}</span>
+                      <span className="text-sm font-bold">{s.count}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <section className="bg-white p-6 rounded-lg shadow">
         <h3 className="text-lg font-semibold mb-4">Passwort ändern</h3>
         <form onSubmit={onChangePassword} className="space-y-4">
           <div>
