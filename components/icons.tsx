@@ -66,3 +66,16 @@ export const ExclamationIcon: React.FC<{ className?: string, title?: string }> =
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
     </svg>
 );
+
+export const SunIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <circle cx="12" cy="12" r="4" />
+    <path strokeLinecap="round" d="M12 2v2m0 16v2M4 12H2m20 0h-2M5.64 5.64L4.22 4.22m15.56 15.56l-1.42-1.42M18.36 5.64l1.42-1.42M5.64 18.36l-1.42 1.42" />
+  </svg>
+);
+
+export const MoonIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+  </svg>
+);

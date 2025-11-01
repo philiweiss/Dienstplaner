@@ -64,9 +64,10 @@ const ScheduleView: React.FC = () => {
     const [calLoading, setCalLoading] = useState(false);
     const [calError, setCalError] = useState<string | null>(null);
     const { user } = useAuth();
-    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, removeAbsence } = useSchedule();
+    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, removeAbsence, dayNotes, setDayNote, removeDayNote } = useSchedule();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [transferModal, setTransferModal] = useState<{ open: boolean; date: string; shiftTypeId: string; toUserId: string } | null>(null);
+    const [noteEditor, setNoteEditor] = useState<{ date: string; text: string; adminOnly: boolean } | null>(null);
 
     const [year, weekNumber] = getWeekNumber(currentDate);
 
@@ -236,6 +237,72 @@ const ScheduleView: React.FC = () => {
                             <p className="text-center text-sm text-gray-500 mb-2">
                                 {day.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
                             </p>
+
+                            {/* Geburtstage/Jubiläen (tagesbezogen, unabhängig von Einteilungen) */}
+                            {(() => {
+                                const md = dateString.slice(5);
+                                const birthdays = users.filter(u => u.birthday && u.birthday.slice(5) === md);
+                                const anniversaries = users.filter(u => u.anniversary && u.anniversary.slice(5) === md);
+                                if (birthdays.length === 0 && anniversaries.length === 0) return null;
+                                return (
+                                    <div className="mb-3 space-y-1">
+                                        {birthdays.length > 0 && (
+                                            <div className="flex flex-wrap justify-center gap-1 text-xs">
+                                                <span className="px-2 py-0.5 rounded-full bg-pink-100 text-pink-800 border border-pink-200">🎂 Geburtstage:</span>
+                                                {birthdays.map(b => (
+                                                    <span key={b.id} className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">{b.name}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                        {anniversaries.length > 0 && (
+                                            <div className="flex flex-wrap justify-center gap-1 text-xs">
+                                                <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">🎉 Jubiläum:</span>
+                                                {anniversaries.map(a => (
+                                                    <span key={a.id} className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-800 border border-gray-200">{a.name}</span>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Tagesnotizen */}
+                            {(() => {
+                                const note = dayNotes.find(n => n.date === dateString);
+                                const canSee = note ? (!note.adminOnly || isAdmin) : true;
+                                const isPending = note ? !note.approved : false;
+                                return (
+                                  <div className="mb-3">
+                                    {canSee && note && note.note && (
+                                      <div className={`p-2 rounded-md text-xs border ${isPending ? 'bg-yellow-50 border-yellow-200 text-yellow-800' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                                        <div className="flex justify-between items-start gap-2">
+                                          <div className="whitespace-pre-wrap break-words">{note.note}</div>
+                                          <div className="flex items-center gap-1">
+                                            {note.adminOnly && <span className="px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">Admin</span>}
+                                            {isPending && <span className="px-1.5 py-0.5 rounded bg-amber-200 text-amber-800">Ausstehend</span>}
+                                          </div>
+                                        </div>
+                                        {isAdmin && (
+                                          <div className="mt-2 flex flex-wrap gap-2">
+                                            <button onClick={() => setNoteEditor({ date: dateString, text: note.note, adminOnly: !!note.adminOnly })} className="px-2 py-1 rounded bg-white border border-gray-300 text-gray-700 text-xs hover:bg-gray-50">Bearbeiten</button>
+                                            {!note.approved && <button onClick={() => setDayNote(dateString, { note: note.note, adminOnly: !!note.adminOnly, approved: true, approvedBy: user?.id || undefined })} className="px-2 py-1 rounded bg-green-600 text-white text-xs hover:bg-green-700">Freigeben</button>}
+                                            <button onClick={() => setDayNote(dateString, { note: note.note, adminOnly: !note.adminOnly, approved: !!note.approved, approvedBy: note.approved ? (user?.id || undefined) : undefined })} className="px-2 py-1 rounded bg-white border border-gray-300 text-gray-700 text-xs hover:bg-gray-50">{note.adminOnly ? 'Admin-Only aus' : 'Admin-Only an'}</button>
+                                            <button onClick={() => removeDayNote(dateString)} className="px-2 py-1 rounded bg-red-600 text-white text-xs hover:bg-red-700">Löschen</button>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                    {/* Editor toggle buttons */}
+                                    {(!note || isAdmin) && (
+                                      <div className="flex justify-center">
+                                        <button onClick={() => setNoteEditor({ date: dateString, text: note?.note || '', adminOnly: !!note?.adminOnly })} className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 text-xs">
+                                          {note ? (isAdmin ? 'Notiz bearbeiten' : 'Vorschlag ändern') : (isAdmin ? 'Notiz hinzufügen' : 'Vorschlag hinzufügen')}
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                            })()}
 
                             {/* Admin-Übersicht: Wer ist abwesend (Urlaub/Seminar) */}
                             {isAdmin && (() => {
@@ -449,6 +516,49 @@ const ScheduleView: React.FC = () => {
                             className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800 disabled:bg-gray-300"
                         >
                             Anfrage senden
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Tagesnotiz-Editor */}
+        {noteEditor && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-4">
+                    <h3 className="text-lg font-semibold mb-3">Tagesnotiz für {new Date(noteEditor.date).toLocaleDateString('de-DE')}</h3>
+                    <textarea
+                        value={noteEditor.text}
+                        onChange={(e) => setNoteEditor({ ...noteEditor, text: e.target.value })}
+                        className="w-full h-32 border border-gray-300 rounded-md p-2 focus:outline-none focus:ring-slate-500 focus:border-slate-500 text-sm"
+                        placeholder="Wichtige Information zum Tag…"
+                    />
+                    <div className="mt-2 flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" checked={noteEditor.adminOnly} onChange={(e) => setNoteEditor({ ...noteEditor, adminOnly: e.target.checked })} disabled={!isAdmin} />
+                            <span>Nur für Admins sichtbar</span>
+                        </label>
+                        {!isAdmin && <span className="text-xs text-gray-500">Hinweis: Deine Notiz muss von einem Admin freigegeben werden.</span>}
+                    </div>
+                    <div className="flex justify-end gap-2 mt-4">
+                        <button onClick={() => setNoteEditor(null)} className="px-3 py-1.5 rounded bg-gray-200 hover:bg-gray-300">Abbrechen</button>
+                        <button
+                            onClick={async () => {
+                                if (!user) return;
+                                try {
+                                    if (isAdmin) {
+                                        await setDayNote(noteEditor.date, { note: noteEditor.text, adminOnly: noteEditor.adminOnly, approved: true, approvedBy: user.id });
+                                    } else {
+                                        await setDayNote(noteEditor.date, { note: noteEditor.text, adminOnly: false, approved: false, createdBy: user.id });
+                                    }
+                                    setNoteEditor(null);
+                                } catch (e: any) {
+                                    alert(e?.message || 'Notiz konnte nicht gespeichert werden.');
+                                }
+                            }}
+                            className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800"
+                        >
+                            Speichern
                         </button>
                     </div>
                 </div>

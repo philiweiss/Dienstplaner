@@ -91,6 +91,12 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
                 } catch (e) {
                     console.error('[useSchedule] Failed to load absences from API', e);
                 }
+                try {
+                    const notes = await dayNotesApi.list(fmt(start), fmt(end));
+                    setDayNotes(notes);
+                } catch (e) {
+                    console.error('[useSchedule] Failed to load day notes from API', e);
+                }
             } catch (e) {
                 console.error('[useSchedule] Failed to load assignments from API', e);
             }
@@ -151,6 +157,45 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
             });
         } catch (e) {
             console.error('[useSchedule] Failed to update week override', e);
+            throw e;
+        }
+    };
+
+    // Day notes helpers
+    const setDayNote = async (date: string, input: { note: string; adminOnly?: boolean; approved?: boolean; createdBy?: string | null; approvedBy?: string | null }) => {
+        // optimistic upsert
+        const prev = dayNotes;
+        const nextNote: DayNote = { date, note: input.note, adminOnly: !!input.adminOnly, approved: !!input.approved, createdBy: input.createdBy ?? null, approvedBy: input.approved ? (input.approvedBy ?? null) : null };
+        setDayNotes(prev => {
+            const idx = prev.findIndex(n => n.date === date);
+            if (idx >= 0) {
+                const copy = [...prev];
+                copy[idx] = { ...copy[idx], ...nextNote };
+                return copy;
+            }
+            return [...prev, nextNote];
+        });
+        try {
+            const saved = await dayNotesApi.set(date, input);
+            setDayNotes(prev => {
+                const idx = prev.findIndex(n => n.date === date);
+                if (idx >= 0) { const copy = [...prev]; copy[idx] = saved; return copy; }
+                return [...prev, saved];
+            });
+        } catch (e) {
+            console.error('[useSchedule] Failed to set day note', e);
+            setDayNotes(prev);
+            throw e;
+        }
+    };
+    const removeDayNote = async (date: string) => {
+        const prev = dayNotes;
+        setDayNotes(prev => prev.filter(n => n.date !== date));
+        try {
+            await dayNotesApi.remove(date);
+        } catch (e) {
+            console.error('[useSchedule] Failed to remove day note', e);
+            setDayNotes(prev);
             throw e;
         }
     };
@@ -436,9 +481,12 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
             handoversOutgoing,
             handoversAdmin,
             absences,
+            dayNotes,
             isUserAbsent,
             addAbsence,
             removeAbsence,
+            setDayNote,
+            removeDayNote,
             refreshHandovers,
             requestHandover,
             respondHandover,

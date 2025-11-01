@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Role } from '../types';
-import { CalendarIcon, CogIcon, LogoutIcon } from './icons';
+import { CalendarIcon, CogIcon, LogoutIcon, MoonIcon, SunIcon } from './icons';
 import { getUserStats, type UserStats } from '../services/stats';
+import { useTheme } from '../hooks/useTheme';
 
 interface HeaderProps {
     currentView: 'schedule' | 'admin' | 'profile';
@@ -12,6 +13,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
     const { user, logout } = useAuth();
+    const { theme, toggleTheme } = useTheme();
     const [stats, setStats] = useState<UserStats | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -36,16 +38,16 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
     if (!user) return null;
 
     const navItemClasses = "flex items-center px-3 py-2 text-sm font-medium rounded-md cursor-pointer transition-colors";
-    const activeClasses = "bg-slate-900 text-white";
-    const inactiveClasses = "text-slate-300 hover:bg-slate-700 hover:text-white";
+    const activeClasses = "bg-slate-200 text-slate-900 dark:bg-slate-900 dark:text-white";
+    const inactiveClasses = "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white";
 
     return (
-        <header className="bg-slate-800 shadow-md">
+        <header className="bg-white border-b border-slate-200 dark:bg-slate-800 dark:border-slate-700 shadow-md">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
-                           <h1 className="text-xl font-bold text-white">IT-Dienstplaner Pro</h1>
+                           <h1 className="text-xl font-bold text-slate-900 dark:text-white">IT-Dienstplaner Pro</h1>
                         </div>
                         <nav className="hidden md:block ml-10">
                             <div className="flex items-baseline space-x-4">
@@ -69,8 +71,8 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
                     <div className="flex items-center gap-4">
                         {/* Compact stats */}
                         <div className="hidden lg:flex items-center gap-2">
-                            <span className="text-slate-200 text-sm">Schichten:</span>
-                            <span className="px-2 py-0.5 rounded bg-slate-700 text-white text-sm font-semibold" title="Gesamtzahl deiner Schichten">
+                            <span className="text-slate-700 dark:text-slate-200 text-sm">Schichten:</span>
+                            <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white text-sm font-semibold" title="Gesamtzahl deiner Schichten">
                                 {loading ? '…' : (stats?.total ?? 0)}
                             </span>
                             {stats?.byShiftType?.map((s) => (
@@ -80,11 +82,14 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
                             ))}
                         </div>
                         <div className="hidden sm:block">
-                             <span className="text-white text-sm mr-1">
+                             <span className="text-slate-700 dark:text-white text-sm mr-1">
                                 Angemeldet als: <span className="font-semibold">{user.name}</span> ({user.role})
                             </span>
                         </div>
-                        <button onClick={logout} className="p-2 rounded-full text-slate-300 hover:text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 focus:ring-white" title="Abmelden">
+                        <button onClick={toggleTheme} className="p-2 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 focus:ring-slate-500" title={theme === 'dark' ? 'Helles Design aktivieren' : 'Dunkles Design aktivieren'}>
+                            {theme === 'dark' ? <SunIcon className="h-6 w-6" /> : <MoonIcon className="h-6 w-6" />}
+                        </button>
+                        <button onClick={logout} className="p-2 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 focus:ring-slate-500" title="Abmelden">
                             <LogoutIcon className="h-6 w-6" />
                         </button>
                     </div>
