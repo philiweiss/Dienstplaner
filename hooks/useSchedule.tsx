@@ -86,6 +86,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     const unassignShift = (date: string, shiftTypeId: string, userId: string) => {
+        // optimistic update
         setAssignments(prev =>
             prev.map(a =>
                 a.date === date && a.shiftTypeId === shiftTypeId
@@ -93,6 +94,22 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
                     : a
             )
         );
+        // persist
+        (async () => {
+            try {
+                await assignmentsApi.unassign(date, shiftTypeId, userId);
+            } catch (e) {
+                console.error('[useSchedule] Failed to persist unassignment', e);
+                // rollback: add back the user
+                setAssignments(prev =>
+                    prev.map(a =>
+                        a.date === date && a.shiftTypeId === shiftTypeId
+                            ? { ...a, userIds: a.userIds.includes(userId) ? a.userIds : [...a.userIds, userId] }
+                            : a
+                    )
+                );
+            }
+        })();
     };
     
     const updateWeekStatus = (year: number, weekNumber: number, status: WeekStatus) => {
