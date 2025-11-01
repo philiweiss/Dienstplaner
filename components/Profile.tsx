@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { changePassword } from '../services/auth';
 import { getUserStats, type UserStats } from '../services/stats';
+import { useSchedule } from '../hooks/useSchedule';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
+  const { users, updateUser } = useSchedule();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newPassword2, setNewPassword2] = useState('');
@@ -15,6 +17,15 @@ const Profile: React.FC = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+
+  const me = useMemo(() => users.find(u => u.id === user?.id), [users, user?.id]);
+  const [birthday, setBirthday] = useState<string>('');
+  const [anniversary, setAnniversary] = useState<string>('');
+
+  useEffect(() => {
+    setBirthday(me?.birthday ?? '');
+    setAnniversary(me?.anniversary ?? '');
+  }, [me?.birthday, me?.anniversary]);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,6 +139,35 @@ const Profile: React.FC = () => {
             </div>
           </div>
         )}
+      </section>
+
+      <section className="bg-white p-6 rounded-lg shadow">
+        <h3 className="text-lg font-semibold mb-4">Geburtstag & Jubiläum</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700" htmlFor="birthday">Geburtstag</label>
+            <input id="birthday" type="date" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500 sm:text-sm" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700" htmlFor="anniversary">Jubiläum (Betriebszugehörigkeit)</label>
+            <input id="anniversary" type="date" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500 sm:text-sm" value={anniversary} onChange={(e) => setAnniversary(e.target.value)} />
+          </div>
+        </div>
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={async () => {
+              if (!user) return;
+              try {
+                await updateUser(user.id, { birthday: birthday || null, anniversary: anniversary || null });
+                alert('Profil gespeichert.');
+              } catch (e: any) {
+                alert(e?.message || 'Profil konnte nicht gespeichert werden.');
+              }
+            }}
+            className="px-4 py-2 rounded-md text-white bg-slate-700 hover:bg-slate-800"
+          >Speichern</button>
+        </div>
       </section>
 
       <section className="bg-white p-6 rounded-lg shadow">
