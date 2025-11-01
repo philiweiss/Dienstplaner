@@ -96,4 +96,41 @@ router.post('/set-password', async (req, res) => {
   }
 });
 
+// Change password for existing user (requires current password)
+router.post('/change-password', async (req, res) => {
+  const schema = z.object({
+    username: z.string().min(1),
+    currentPassword: z.string().min(1),
+    newPassword: z.string().min(8)
+  });
+  const parse = schema.safeParse(req.body);
+  if (!parse.success) return res.status(400).json({ error: parse.error.format() });
+  const { username, currentPassword, newPassword } = parse.data;
+  try {
+    const [rows] = await pool.query('SELECT id, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
+    // @ts-ignore
+    const user = Array.isArray(rows) && rows.length ? rows[0] : null;
+    if (!user || !user.password_hash) return res.status(400).json({ error: 'Benutzer oder Passwort ungültig' });
+    const ok = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!ok) return res.status(400).json({ error: 'Benutzer oder Passwort ungültig' });
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE users SET password_hash=? WHERE id=?', [hash, user.id]);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Passwort ändern fehlgeschlagen' });
+  }
+});
+
+// WebAuthn passkey registration stubs (to be implemented)
+router.post('/passkey/register/start', async (_req, res) => {
+  // TODO: Implement proper WebAuthn options generation and session binding
+  res.json({ ok: true, message: 'WebAuthn-Registrierung bald verfügbar' });
+});
+
+router.post('/passkey/register/finish', async (_req, res) => {
+  // TODO: Implement proper WebAuthn attestation verification and storage
+  res.json({ ok: true, message: 'WebAuthn-Registrierung bald verfügbar' });
+});
+
 export default router;

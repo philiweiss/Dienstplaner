@@ -28,3 +28,10 @@ export async function setPassword(username: string, password: string): Promise<{
     body: JSON.stringify({ username, password })
   });
 }
+
+export async function changePassword(username: string, currentPassword: string, newPassword: string): Promise<{ ok: boolean }> {
+  return jsonFetch(`/api/auth/change-password`, {
+    method: 'POST',
+    body: JSON.stringify({ username, currentPassword, newPassword })
+  });
+}
