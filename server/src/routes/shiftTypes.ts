@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-const UpdateShiftTypeSchema = ShiftTypeSchema.partial();
+const UpdateShiftTypeSchema = BaseShiftType.partial();
 
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
