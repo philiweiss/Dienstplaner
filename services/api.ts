@@ -1,32 +1,21 @@
-// Simple API client utilities
-export interface ApiError extends Error {
-  status?: number;
-}
+export const API_BASE = (import.meta as any).env?.VITE_API_BASE || '';
 
-const DEFAULT_BASE = '';
-
-export function apiBase(): string {
-  // Using relative paths works for same-origin deployment under dev.wproducts.de
-  // Allow override via Vite env (optional)
-  const envBase = (import.meta as any).env?.VITE_API_BASE as string | undefined;
-  return envBase ?? DEFAULT_BASE;
-}
-
-export async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(apiBase() + path, {
-    headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
-    credentials: 'same-origin',
+export async function jsonFetch<T>(input: string, init?: RequestInit): Promise<T> {
+  const url = `${API_BASE}${input}`;
+  const res = await fetch(url, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(init?.headers || {}),
+    },
     ...init,
   });
-  const ct = res.headers.get('content-type') || '';
-  const isJson = ct.includes('application/json');
-  const body = isJson ? await res.json().catch(() => ({})) : await res.text();
+  const isJson = res.headers.get('content-type')?.includes('application/json');
   if (!res.ok) {
-    const err: ApiError = new Error(
-      (isJson && body && (body.error || body.message)) || `HTTP ${res.status}`
-    );
+    const body = isJson ? await res.json().catch(() => ({})) : await res.text().catch(() => '');
+    const err: any = new Error(`Request failed: ${res.status}`);
     err.status = res.status;
+    err.body = body;
     throw err;
   }
-  return body as T;
+  return (isJson ? res.json() : (null as any)) as Promise<T>;
 }
