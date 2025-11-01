@@ -28,6 +28,8 @@ interface ScheduleContextType {
     deleteShiftType: (id: string) => void;
     addUser: (user: Omit<User, 'id'>) => void;
     deleteUser: (id: string) => void;
+    getEffectiveShiftLimits: (date: string, shiftTypeId: string) => { minUsers: number; maxUsers: number };
+    updateWeekOverride: (input: { year: number; weekNumber: number; shiftTypeId: string; minUsers?: number; maxUsers?: number }) => Promise<void>;
 }
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined);
