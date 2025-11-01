@@ -146,7 +146,7 @@ const ScheduleView: React.FC = () => {
                             <div className="space-y-3">
                                 {shiftTypes.map(shiftType => {
                                     const assignment = assignments.find(a => a.date === dateString && a.shiftTypeId === shiftType.id);
-                                    const assignedUsers = useMemo(() => assignment ? assignment.userIds.map(uid => users.find(u => u.id === uid)).filter((u): u is User => !!u) : [], [assignment, users]);
+                                    const assignedUsers = assignment ? assignment.userIds.map(uid => users.find(u => u.id === uid)).filter((u): u is User => !!u) : [];
                                     
                                     const isFull = assignedUsers.length >= shiftType.maxUsers;
                                     const isUnderstaffed = assignedUsers.length < shiftType.minUsers;
