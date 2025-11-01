@@ -267,7 +267,37 @@ const AdminPanel: React.FC = () => {
     return (
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Admin-Panel</h2>
-            <p className="text-gray-600 mb-6">Verwalten Sie hier die Einstellungen des Dienstplaners.</p>
+            <p className="text-gray-600">Verwalten Sie hier die Einstellungen des Dienstplaners.</p>
+
+            {/* Admin-Header Hinweis wie beim User: Übergaben, die auf Bestätigung warten */}
+            {user?.role === Role.ADMIN && handoversAdmin.length > 0 && (
+                <div className="mt-3 mb-6 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <p className="font-semibold text-amber-800 mb-2">
+                        Übergaben warten auf Bestätigung ({handoversAdmin.length})
+                    </p>
+                    <div className="space-y-2">
+                        {handoversAdmin.slice(0, 3).map(h => {
+                            const st = shiftTypes.find(s => s.id === h.shiftTypeId);
+                            const fromUser = users.find(u => u.id === h.fromUserId);
+                            const toUser = users.find(u => u.id === h.toUserId);
+                            return (
+                                <div key={h.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm">
+                                    <span>
+                                        {fromUser?.name} → {toUser?.name}: {st?.name} am {new Date(h.date).toLocaleDateString('de-DE')}
+                                    </span>
+                                    <div className="flex gap-2 mt-2 sm:mt-0">
+                                        <button onClick={() => user && declineHandover(h.id, user.id)} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">Ablehnen</button>
+                                        <button onClick={() => user && approveHandover(h.id, user.id)} className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">Bestätigen</button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {handoversAdmin.length > 3 && (
+                        <p className="text-xs text-amber-800 mt-2">Weitere Einträge finden Sie im Tab „Übergaben“.</p>
+                    )}
+                </div>
+            )}
             
             <div className="mb-6 border-b border-gray-200">
                 <nav className="-mb-px flex space-x-2 sm:space-x-4 overflow-x-auto" aria-label="Tabs">

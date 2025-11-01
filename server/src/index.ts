@@ -14,8 +14,18 @@ import calendarRouter from './routes/calendar.js';
 
 const app = express();
 
-// CORS restricted to production origin (browser cross-origin calls)
-app.use(cors({ origin: 'https://dev.wproducts.de' }));
+// CORS: allow configured origins (supports dev + prod)
+const corsOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000,https://dev.wproducts.de')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true); // allow non-browser clients
+    if (corsOrigins.includes(origin)) return callback(null, true);
+    return callback(null, false);
+  }
+}));
 app.use(express.json());
 
 // Serve built SPA (frontend) from server/public
