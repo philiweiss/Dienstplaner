@@ -1,21 +1,30 @@
 export const API_BASE = (import.meta as any).env?.VITE_API_BASE || '';
 
-export async function jsonFetch<T>(input: string, init?: RequestInit): Promise<T> {
-  const url = `${API_BASE}${input}`;
-  const res = await fetch(url, {
+export async function apiFetch<T = any>(path: string, options: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
     headers: {
       'Content-Type': 'application/json',
-      ...(init?.headers || {}),
+      ...(options.headers || {})
     },
-    ...init,
+    ...options,
   });
-  const isJson = res.headers.get('content-type')?.includes('application/json');
+  const contentType = res.headers.get('content-type') || '';
   if (!res.ok) {
-    const body = isJson ? await res.json().catch(() => ({})) : await res.text().catch(() => '');
-    const err: any = new Error(`Request failed: ${res.status}`);
-    err.status = res.status;
-    err.body = body;
-    throw err;
+    let message = `${res.status} ${res.statusText}`;
+    try {
+      if (contentType.includes('application/json')) {
+        const err = await res.json();
+        message = err?.error || message;
+      } else {
+        const txt = await res.text();
+        if (txt) message = txt;
+      }
+    } catch (_) {}
+    throw new Error(message);
   }
-  return (isJson ? res.json() : (null as any)) as Promise<T>;
+  if (contentType.includes('application/json')) {
+    return res.json();
+  }
+  // @ts-ignore
+  return res.text();
 }

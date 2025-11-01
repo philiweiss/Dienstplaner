@@ -27,7 +27,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
     const [weekConfigs, setWeekConfigs] = useState<WeekConfig[]>([]);
 
-    // Load users and assignments from backend on mount
+    // Load users, assignments, and week configs from backend on mount
     useEffect(() => {
         (async () => {
             try {
@@ -51,6 +51,14 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
                 setAssignments(dataA);
             } catch (e) {
                 console.error('[useSchedule] Failed to load assignments from API', e);
+            }
+            try {
+                // Load week configs (current year only to reduce payload)
+                const year = new Date().getFullYear();
+                const configs = await weekConfigsApi.listWeekConfigs(year);
+                setWeekConfigs(configs);
+            } catch (e) {
+                console.error('[useSchedule] Failed to load week configs from API', e);
             }
         })();
     }, []);
@@ -114,6 +122,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
     
     const updateWeekStatus = (year: number, weekNumber: number, status: WeekStatus) => {
+        // optimistic update
         setWeekConfigs(prev => {
             const existing = prev.find(wc => wc.year === year && wc.weekNumber === weekNumber);
             if (existing) {
@@ -121,6 +130,26 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
             }
             return [...prev, { year, weekNumber, status }];
         });
+        // persist and rollback on error
+        (async () => {
+            try {
+                await weekConfigsApi.updateWeekConfig({ year, weekNumber, status });
+            } catch (e) {
+                console.error('[useSchedule] Failed to persist week status', e);
+                // rollback: refetch or revert entry
+                try {
+                    const configs = await weekConfigsApi.listWeekConfigs(new Date().getFullYear());
+                    setWeekConfigs(configs);
+                } catch (e2) {
+                    // fallback: revert only this item to opposite
+                    setWeekConfigs(prev => prev.map(wc => (
+                        wc.year === year && wc.weekNumber === weekNumber
+                          ? { ...wc, status: wc.status === WeekStatus.OPEN ? WeekStatus.LOCKED : WeekStatus.OPEN }
+                          : wc
+                    )));
+                }
+            }
+        })();
     };
 
     const addShiftType = (shiftType: Omit<ShiftType, 'id'>) => {
