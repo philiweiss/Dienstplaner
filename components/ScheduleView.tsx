@@ -1,0 +1,223 @@
+
+import React, { useState, useMemo } from 'react';
+import { useAuth } from '../hooks/useAuth';
+import { useSchedule } from '../hooks/useSchedule';
+import { Role, WeekStatus, User } from '../types';
+import { generateICS } from '../services/calendarService';
+import { ChevronLeftIcon, ChevronRightIcon, LockClosedIcon, PlusIcon, TrashIcon, ExclamationIcon } from './icons';
+
+// Helper to get week number
+const getWeekNumber = (d: Date): [number, number] => {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    return [d.getUTCFullYear(), weekNo];
+};
+
+const AdminAssignControl: React.FC<{
+    date: string;
+    shiftTypeId: string;
+    assignedUsers: User[];
+}> = ({ date, shiftTypeId, assignedUsers }) => {
+    const { users, assignShift } = useSchedule();
+    const [selectedUserId, setSelectedUserId] = useState('');
+
+    const availableUsers = useMemo(() => {
+        const assignedIds = new Set(assignedUsers.map(u => u.id));
+        return users.filter(u => !assignedIds.has(u.id));
+    }, [users, assignedUsers]);
+
+    const handleAssign = () => {
+        if (selectedUserId) {
+            assignShift(date, shiftTypeId, selectedUserId);
+            setSelectedUserId('');
+        }
+    };
+
+    return (
+        <div className="flex items-center space-x-2 mt-2">
+            <select
+                value={selectedUserId}
+                onChange={(e) => setSelectedUserId(e.target.value)}
+                className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2 bg-gray-50"
+            >
+                <option value="">Benutzer wählen...</option>
+                {availableUsers.map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                ))}
+            </select>
+            <button
+                onClick={handleAssign}
+                disabled={!selectedUserId}
+                className="p-2 bg-slate-700 text-white rounded-md hover:bg-slate-800 disabled:bg-gray-300"
+            >
+                <PlusIcon className="h-5 w-5" />
+            </button>
+        </div>
+    );
+};
+
+
+const ScheduleView: React.FC = () => {
+    const { user } = useAuth();
+    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift } = useSchedule();
+    const [currentDate, setCurrentDate] = useState(new Date());
+
+    const [year, weekNumber] = getWeekNumber(currentDate);
+
+    const weekConfig = weekConfigs.find(wc => wc.year === year && wc.weekNumber === weekNumber) || { status: WeekStatus.LOCKED };
+    const isWeekOpen = weekConfig.status === WeekStatus.OPEN;
+    const isAdmin = user?.role === Role.ADMIN;
+
+    const daysOfWeek = useMemo(() => {
+        const firstDay = new Date(currentDate);
+        const dayOfWeek = firstDay.getDay();
+        const diff = firstDay.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        const monday = new Date(firstDay.setDate(diff));
+
+        return Array.from({ length: 7 }).map((_, i) => {
+            const date = new Date(monday);
+            date.setDate(monday.getDate() + i);
+            return date;
+        });
+    }, [currentDate]);
+
+    const changeWeek = (direction: 'prev' | 'next') => {
+        const newDate = new Date(currentDate);
+        newDate.setDate(currentDate.getDate() + (direction === 'prev' ? -7 : 7));
+        setCurrentDate(newDate);
+    };
+
+    const handleExport = () => {
+        if (!user) return;
+        const userAssignments = assignments
+            .filter(a => a.userIds.includes(user.id))
+            .map(a => ({
+                assignment: a,
+                shiftType: shiftTypes.find(st => st.id === a.shiftTypeId)!
+            }))
+            .filter(item => item.shiftType);
+        
+        generateICS(user, userAssignments);
+    };
+    
+    return (
+        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
+                <div className="flex items-center space-x-2 sm:space-x-4">
+                    <button onClick={() => changeWeek('prev')} className="p-2 rounded-full hover:bg-gray-200 transition">
+                        <ChevronLeftIcon className="h-6 w-6 text-gray-600" />
+                    </button>
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800 text-center whitespace-nowrap">
+                        KW {weekNumber}, {year}
+                    </h2>
+                    <button onClick={() => changeWeek('next')} className="p-2 rounded-full hover:bg-gray-200 transition">
+                        <ChevronRightIcon className="h-6 w-6 text-gray-600" />
+                    </button>
+                </div>
+                <div className="flex items-center space-x-2">
+                     {!isWeekOpen && (
+                        <div className="flex items-center text-sm font-semibold text-amber-700 bg-amber-100 px-3 py-1.5 rounded-full">
+                            <LockClosedIcon className="h-4 w-4 mr-2" />
+                            Woche gesperrt
+                        </div>
+                    )}
+                    <button 
+                        onClick={handleExport}
+                        className="bg-slate-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-slate-800 transition shadow"
+                    >
+                        Exportieren
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+                {daysOfWeek.map(day => {
+                    const dateString = day.toISOString().split('T')[0];
+                    return (
+                        <div key={day.toISOString()} className="p-3">
+                            <h3 className="font-bold text-center text-gray-700">
+                                {day.toLocaleDateString('de-DE', { weekday: 'long' })}
+                            </h3>
+                            <p className="text-center text-sm text-gray-500 mb-4">
+                                {day.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
+                            </p>
+                            <div className="space-y-3">
+                                {shiftTypes.map(shiftType => {
+                                    const assignment = assignments.find(a => a.date === dateString && a.shiftTypeId === shiftType.id);
+                                    const assignedUsers = useMemo(() => assignment ? assignment.userIds.map(uid => users.find(u => u.id === uid)).filter((u): u is User => !!u) : [], [assignment, users]);
+                                    
+                                    const isFull = assignedUsers.length >= shiftType.maxUsers;
+                                    const isUnderstaffed = assignedUsers.length < shiftType.minUsers;
+                                    const userIsAssigned = user ? assignedUsers.some(u => u.id === user.id) : false;
+                                    const canSelfRegister = !isFull && isWeekOpen && !userIsAssigned;
+                                    
+                                    const handleSignUp = () => {
+                                       if(canSelfRegister && user) {
+                                            assignShift(dateString, shiftType.id, user.id);
+                                        }
+                                    };
+                                    
+                                    const handleSignOut = (userId: string) => {
+                                        if (isAdmin || (isWeekOpen && user?.id === userId)) {
+                                            unassignShift(dateString, shiftType.id, userId);
+                                        }
+                                    };
+
+                                    return (
+                                        <div key={shiftType.id} className={`p-2.5 rounded-md shadow-sm border bg-white ${isUnderstaffed && assignedUsers.length > 0 ? 'border-red-400' : 'border-gray-200'}`}>
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <p className={`text-sm font-semibold px-2 py-0.5 rounded-full inline-block ${shiftType.color}`}>
+                                                        {shiftType.name}
+                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-1">{shiftType.startTime} - {shiftType.endTime}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                     <p className="text-xs font-semibold text-gray-600">
+                                                        {assignedUsers.length} / {shiftType.maxUsers}
+                                                    </p>
+                                                    {isUnderstaffed && <ExclamationIcon className="h-5 w-5 text-red-500 mt-1" title={`Mindestbesetzung: ${shiftType.minUsers}`} />}
+                                                </div>
+                                            </div>
+                                           
+                                            <div className="space-y-1.5 mt-2">
+                                                {assignedUsers.map(assignedUser => (
+                                                    <div key={assignedUser.id} className={`flex items-center justify-between p-1.5 rounded text-sm font-medium ${user?.id === assignedUser.id ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                                        <span>{assignedUser.name}</span>
+                                                        {(isAdmin || (user?.id === assignedUser.id && isWeekOpen)) && (
+                                                            <button onClick={() => handleSignOut(assignedUser.id)} className="text-red-500 hover:text-red-700 p-1">
+                                                                <TrashIcon className="h-4 w-4" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            
+                                            {isAdmin && !isFull && (
+                                                <AdminAssignControl date={dateString} shiftTypeId={shiftType.id} assignedUsers={assignedUsers} />
+                                            )}
+
+                                            {!isAdmin && canSelfRegister && (
+                                                <button 
+                                                    onClick={handleSignUp}
+                                                    className="w-full flex items-center justify-center p-2 mt-2 rounded text-sm font-medium transition bg-gray-200 text-gray-600 hover:bg-slate-200 hover:text-slate-800"
+                                                >
+                                                    <PlusIcon className="h-4 w-4 mr-1"/>
+                                                    Eintragen
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+};
+
+export default ScheduleView;

@@ -1,0 +1,5 @@
+{
+  "name": "IT Dienstplaner",
+  "description": "Ein Tool für die Dienstplanung im IT Service. Administratoren können Schichten und Nutzer konfigurieren, Wochen zur Eintragung freigeben und sperren. Nutzer können sich selbst für Schichten eintragen und ihre Pläne in ihren Outlook-Kalender exportieren.",
+  "requestFramePermissions": []
+}
