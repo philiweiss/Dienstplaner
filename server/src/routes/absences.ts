@@ -17,10 +17,11 @@ router.get('/', async (req, res) => {
   const { start, end } = parse.data;
   try {
     const [rows]: any = await pool.query(
-      `SELECT id, user_id AS userId, DATE_FORMAT(date, '%Y-%m-%d') AS date, type, note
-       FROM absences
-       WHERE date BETWEEN ? AND ?
-       ORDER BY date ASC`,
+      `SELECT a.id, a.user_id AS userId, DATE_FORMAT(a.date, '%Y-%m-%d') AS date, a.type, a.note, u.name AS userName
+       FROM absences a
+       JOIN users u ON u.id = a.user_id
+       WHERE a.date BETWEEN ? AND ?
+       ORDER BY a.date ASC`,
       [start, end]
     );
     res.json(rows);
