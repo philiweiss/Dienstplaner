@@ -1,8 +1,9 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User, Role, ShiftType, ShiftAssignment, WeekConfig, WeekStatus } from '../types';
-import { SHIFT_TYPES, WEEK_CONFIGS } from '../constants';
+import { SHIFT_TYPES } from '../constants';
 import * as userApi from '../services/users';
 import * as assignmentsApi from '../services/assignments';
+import * as weekConfigsApi from '../services/weekConfigs';
 
 interface ScheduleContextType {
     users: User[];
@@ -24,7 +25,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [users, setUsers] = useState<User[]>([]);
     const [shiftTypes, setShiftTypes] = useState<ShiftType[]>(SHIFT_TYPES);
     const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
-    const [weekConfigs, setWeekConfigs] = useState<WeekConfig[]>(WEEK_CONFIGS);
+    const [weekConfigs, setWeekConfigs] = useState<WeekConfig[]>([]);
 
     // Load users and assignments from backend on mount
     useEffect(() => {
