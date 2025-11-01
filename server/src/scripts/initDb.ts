@@ -97,6 +97,17 @@ async function run() {
     CONSTRAINT fk_hr_from_user FOREIGN KEY (from_user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_hr_to_user FOREIGN KEY (to_user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS absences (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    date DATE NOT NULL,
+    type ENUM('VACATION','SEMINAR') NOT NULL,
+    note VARCHAR(500) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_abs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_user_date (user_id, date)
+  );
   `;
 
   await conn.query(sql);

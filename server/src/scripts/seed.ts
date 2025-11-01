@@ -2,19 +2,11 @@ import 'dotenv/config';
 import { pool } from '../db.js';
 
 async function seed() {
-  // Users
-  await pool.query(`INSERT IGNORE INTO users (id, name, role) VALUES
-    ('u1','Alice Admin','Admin'),
-    ('u2','Bob Bauer','User'),
-    ('u3','Charlie Schmidt','User'),
-    ('u4','Diana Fischer','User')
-  `);
 
   // Shift types
   await pool.query(`INSERT IGNORE INTO shift_types (id, name, start_time, end_time, color, min_users, max_users) VALUES
     ('st1','Frühschicht','06:00','14:00','bg-sky-200 text-sky-800',2,2),
     ('st2','Spätschicht','14:00','22:00','bg-amber-200 text-amber-800',1,1),
-    ('st3','Nachtschicht','22:00','06:00','bg-indigo-200 text-indigo-800',1,1)
   `);
 
   // Assignments and users

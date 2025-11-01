@@ -12,6 +12,7 @@ import authRouter from './routes/auth.js';
 import handoversRouter from './routes/handovers.js';
 import calendarRouter from './routes/calendar.js';
 import weekOverridesRouter from './routes/weekOverrides.js';
+import absencesRouter from './routes/absences.js';
 
 const app = express();
 
@@ -49,6 +50,7 @@ app.use('/api/week-configs', weekConfigsRouter);
 app.use('/api/week-overrides', weekOverridesRouter);
 app.use('/api/handovers', handoversRouter);
 app.use('/api/calendar', calendarRouter);
+app.use('/api/absences', absencesRouter);
 
 // SPA fallback for all non-API GET requests
 app.get('*', (req, res) => {

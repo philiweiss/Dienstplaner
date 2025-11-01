@@ -51,6 +51,12 @@ router.post('/assign', async (req, res) => {
   if (!parse.success) return res.status(400).json({ error: parse.error.format() });
   const { date, shiftTypeId, userId } = parse.data;
   try {
+    // Conflict: user has an absence on this date
+    const [abs]: any = await pool.query('SELECT 1 FROM absences WHERE user_id=? AND date=? LIMIT 1', [userId, date]);
+    if (Array.isArray(abs) && abs.length) {
+      return res.status(409).json({ error: 'User is marked absent on this date' });
+    }
+
     // Ensure assignment exists
     const [existing] = await pool.query('SELECT id FROM assignments WHERE date=? AND shift_type_id=? LIMIT 1', [date, shiftTypeId]);
     // @ts-ignore
