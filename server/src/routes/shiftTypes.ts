@@ -49,6 +49,37 @@ router.put('/:id', async (req, res) => {
   const fields = parse.data;
   try {
     if (Object.keys(fields).length === 0) return res.status(400).json({ error: 'No fields to update' });
+
+    // Load current values to validate partial updates
+    const [curRows]: any = await pool.query('SELECT min_users AS minUsers, max_users AS maxUsers FROM shift_types WHERE id=? LIMIT 1', [id]);
+    if (!Array.isArray(curRows) || curRows.length === 0) {
+      return res.status(404).json({ error: 'Shift type not found' });
+    }
+    const current = curRows[0] as { minUsers: number; maxUsers: number };
+    const newMin = fields.minUsers !== undefined ? fields.minUsers : current.minUsers;
+    const newMax = fields.maxUsers !== undefined ? fields.maxUsers : current.maxUsers;
+    if (newMax < newMin) {
+      return res.status(400).json({ error: 'maxUsers must be >= minUsers' });
+    }
+
+    // If decreasing maxUsers, ensure no existing assignment exceeds newMax
+    if (fields.maxUsers !== undefined && fields.maxUsers < current.maxUsers) {
+      const [occRows]: any = await pool.query(
+        `SELECT MAX(cnt) AS maxCnt FROM (
+           SELECT COUNT(*) AS cnt
+           FROM assignments a
+           JOIN assignment_users au ON au.assignment_id = a.id
+           WHERE a.shift_type_id = ?
+           GROUP BY a.id
+         ) t`,
+        [id]
+      );
+      const maxCnt = occRows?.[0]?.maxCnt ?? 0;
+      if (maxCnt > newMax) {
+        return res.status(409).json({ error: `Cannot reduce maxUsers below current occupancy (${maxCnt}).` });
+      }
+    }
+
     const sets: string[] = [];
     const values: any[] = [];
     if (fields.name !== undefined) { sets.push('name=?'); values.push(fields.name); }

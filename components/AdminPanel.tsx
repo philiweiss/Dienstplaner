@@ -52,9 +52,34 @@ const WeekManagement: React.FC = () => {
 };
 
 const ShiftManagement: React.FC = () => {
-    const { shiftTypes, addShiftType, deleteShiftType } = useSchedule();
+    const { shiftTypes, addShiftType, updateShiftType, deleteShiftType } = useSchedule();
     const [newShift, setNewShift] = useState({ name: '', startTime: '08:00', endTime: '16:00', color: 'bg-gray-200 text-gray-800', minUsers: 1, maxUsers: 1 });
     const [error, setError] = useState('');
+
+    const onEditShift = (st: ShiftType) => {
+        const name = window.prompt('Name', st.name)?.trim();
+        if (!name) return;
+        const startTime = window.prompt('Start (HH:MM)', st.startTime)?.trim();
+        if (!startTime) return;
+        const endTime = window.prompt('Ende (HH:MM)', st.endTime)?.trim();
+        if (!endTime) return;
+        const minStr = window.prompt('Min. Besetzung', String(st.minUsers))?.trim();
+        if (minStr === null || minStr === undefined) return;
+        const maxStr = window.prompt('Max. Besetzung', String(st.maxUsers))?.trim();
+        if (maxStr === null || maxStr === undefined) return;
+        const minUsers = Math.max(0, parseInt(minStr || '0', 10) || 0);
+        const maxUsers = Math.max(0, parseInt(maxStr || '0', 10) || 0);
+        const timeRe = /^\d{2}:\d{2}$/;
+        if (!timeRe.test(startTime) || !timeRe.test(endTime)) {
+            alert('Zeitformat muss HH:MM sein.');
+            return;
+        }
+        if (maxUsers < minUsers) {
+            alert('Max. Besetzung darf nicht kleiner als Min. Besetzung sein.');
+            return;
+        }
+        updateShiftType(st.id, { name, startTime, endTime, minUsers, maxUsers });
+    };
 
     const colors = [
         { name: 'Sky', value: 'bg-sky-200 text-sky-800' },
