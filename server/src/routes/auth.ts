@@ -1,9 +1,22 @@
 import { Router } from 'express';
 import { pool } from '../db.js';
 import { z } from 'zod';
+import type { RowDataPacket } from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
 
 const router = Router();
+
+interface UserRow extends RowDataPacket {
+  id: string;
+  name: string;
+  role: 'User' | 'Admin';
+  password_hash: string | null;
+}
+
+interface UserPwdRow extends RowDataPacket {
+  id: string;
+  password_hash: string | null;
+}
 
 const UsernameSchema = z.object({
   username: z.string().min(1),
@@ -25,9 +38,8 @@ router.post('/check-user', async (req, res) => {
   if (!parse.success) return res.status(400).json({ error: parse.error.format() });
   const { username } = parse.data;
   try {
-    const [rows] = await pool.query('SELECT id, name, role, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
-    // @ts-ignore - mysql2 types
-    const user = Array.isArray(rows) && rows.length ? rows[0] : null;
+    const [rows] = await pool.query<UserRow[]>('SELECT id, name, role, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
+    const user: UserRow | null = Array.isArray(rows) && rows.length ? (rows[0] as UserRow) : null;
     if (!user) return res.json({ exists: false });
     const needsPassword = !user.password_hash;
     return res.json({ exists: true, needsPassword, user: { id: user.id, name: user.name, role: user.role } });
@@ -43,9 +55,8 @@ router.post('/login', async (req, res) => {
   if (!parse.success) return res.status(400).json({ error: parse.error.format() });
   const { username } = parse.data;
   try {
-    const [rows] = await pool.query('SELECT id, name, role, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
-    // @ts-ignore - mysql2 types
-    const user = Array.isArray(rows) && rows.length ? rows[0] : null;
+    const [rows] = await pool.query<UserRow[]>('SELECT id, name, role, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
+    const user: UserRow | null = Array.isArray(rows) && rows.length ? (rows[0] as UserRow) : null;
     if (!user) return res.status(404).json({ error: 'Benutzer existiert nicht' });
     if (user.password_hash) {
       return res.status(400).json({ error: 'Passwort erforderlich' });
