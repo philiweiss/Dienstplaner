@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import usersRouter from './routes/users.js';
 import shiftTypesRouter from './routes/shiftTypes.js';
 import assignmentsRouter from './routes/assignments.js';
@@ -9,27 +11,35 @@ import authRouter from './routes/auth.js';
 
 const app = express();
 
+// CORS restricted to production origin (browser cross-origin calls)
 app.use(cors({ origin: 'https://dev.wproducts.de' }));
 app.use(express.json());
 
-// Friendly root for environments hitting "/"
-app.get('/', (_req, res) => {
-  res.status(200).json({
-    service: 'Dienstplaner API',
-    health: '/api/health',
-    endpoints: '/README (see repository)'
-  });
-});
+// Serve built SPA (frontend) from server/public
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const publicDir = path.resolve(__dirname, '../public');
+app.use(express.static(publicDir));
 
+// Health endpoint remains under /api
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });
 });
 
+// API routes
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/shift-types', shiftTypesRouter);
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api/week-configs', weekConfigsRouter);
+
+// SPA fallback for all non-API GET requests
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
