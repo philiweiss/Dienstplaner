@@ -29,7 +29,5 @@ export async function apiFetch<T = any>(path: string, options: RequestInit = {})
   return res.text();
 }
 
-
-export async function jsonFetch<T = any>(path: string, options: RequestInit = {}): Promise<T> {
-  return apiFetch<T>(path, options);
-}
+// Backward-compatible alias used across services
+export const jsonFetch = apiFetch;

@@ -9,6 +9,7 @@ import shiftTypesRouter from './routes/shiftTypes.js';
 import assignmentsRouter from './routes/assignments.js';
 import weekConfigsRouter from './routes/weekConfigs.js';
 import authRouter from './routes/auth.js';
+import handoversRouter from './routes/handovers.js';
 
 const app = express();
 

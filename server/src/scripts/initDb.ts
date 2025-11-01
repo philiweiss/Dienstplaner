@@ -71,6 +71,19 @@ async function run() {
     status ENUM('Gesperrt','Offen') NOT NULL,
     PRIMARY KEY (year, week_number)
   );
+
+  CREATE TABLE IF NOT EXISTS handover_requests (
+    id VARCHAR(36) PRIMARY KEY,
+    assignment_id VARCHAR(36) NOT NULL,
+    from_user_id VARCHAR(36) NOT NULL,
+    to_user_id VARCHAR(36) NOT NULL,
+    status ENUM('REQUESTED','ACCEPTED','REJECTED','APPROVED','DECLINED') NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_hr_assignment FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,
+    CONSTRAINT fk_hr_from_user FOREIGN KEY (from_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_hr_to_user FOREIGN KEY (to_user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
   `;
 
   await conn.query(sql);

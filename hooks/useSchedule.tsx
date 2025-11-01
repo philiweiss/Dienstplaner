@@ -1,8 +1,8 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User, Role, ShiftType, ShiftAssignment, WeekConfig, WeekStatus } from '../types';
-import { SHIFT_TYPES } from '../constants';
 import * as userApi from '../services/users';
 import * as assignmentsApi from '../services/assignments';
+import * as shiftTypeApi from '../services/shiftTypes';
 import * as weekConfigsApi from '../services/weekConfigs';
 
 interface ScheduleContextType {
