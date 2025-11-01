@@ -74,9 +74,8 @@ router.post('/login-password', async (req, res) => {
   if (!parse.success) return res.status(400).json({ error: parse.error.format() });
   const { username, password } = parse.data;
   try {
-    const [rows] = await pool.query('SELECT id, name, role, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
-    // @ts-ignore - mysql2 types
-    const user = Array.isArray(rows) && rows.length ? rows[0] : null;
+    const [rows] = await pool.query<UserRow[]>('SELECT id, name, role, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
+    const user: UserRow | null = Array.isArray(rows) && rows.length ? (rows[0] as UserRow) : null;
     if (!user || !user.password_hash) return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
