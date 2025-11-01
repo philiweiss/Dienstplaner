@@ -28,3 +28,8 @@ export async function apiFetch<T = any>(path: string, options: RequestInit = {})
   // @ts-ignore
   return res.text();
 }
+
+
+export async function jsonFetch<T = any>(path: string, options: RequestInit = {}): Promise<T> {
+  return apiFetch<T>(path, options);
+}
