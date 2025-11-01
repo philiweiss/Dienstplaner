@@ -16,14 +16,15 @@ router.get('/', async (_req, res) => {
   }
 });
 
-const ShiftTypeSchema = z.object({
+const BaseShiftType = z.object({
   name: z.string().min(1),
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime: z.string().regex(/^\d{2}:\d{2}$/),
   color: z.string().min(1),
   minUsers: z.number().int().min(0),
   maxUsers: z.number().int().min(0)
-}).refine((d) => d.maxUsers >= d.minUsers, { message: 'maxUsers must be >= minUsers', path: ['maxUsers']});
+});
+const ShiftTypeSchema = BaseShiftType.refine((d) => d.maxUsers >= d.minUsers, { message: 'maxUsers must be >= minUsers', path: ['maxUsers']});
 
 router.post('/', async (req, res) => {
   const parse = ShiftTypeSchema.safeParse(req.body);
