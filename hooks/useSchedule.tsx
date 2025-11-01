@@ -161,13 +161,47 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     const addShiftType = (shiftType: Omit<ShiftType, 'id'>) => {
-        const newShiftType: ShiftType = { ...shiftType, id: `st-${Date.now()}` };
-        setShiftTypes(prev => [...prev, newShiftType]);
+        (async () => {
+            try {
+                const created = await shiftTypeApi.createShiftType(shiftType);
+                setShiftTypes(prev => [...prev, created]);
+            } catch (e) {
+                console.error('[useSchedule] Failed to create shift type', e);
+            }
+        })();
     };
     
+    const updateShiftType = (id: string, fields: Partial<Omit<ShiftType, 'id'>>) => {
+        // optimistic update
+        const prevSnapshot = shiftTypes;
+        setShiftTypes(prev => prev.map(st => st.id === id ? { ...st, ...fields } as ShiftType : st));
+        (async () => {
+            try {
+                await shiftTypeApi.updateShiftType(id, fields);
+            } catch (e) {
+                console.error('[useSchedule] Failed to update shift type', e);
+                // rollback on error
+                setShiftTypes(prevSnapshot);
+            }
+        })();
+    };
+
     const deleteShiftType = (id: string) => {
+        // optimistic remove
+        const prevShiftTypes = shiftTypes;
+        const prevAssignments = assignments;
         setShiftTypes(prev => prev.filter(st => st.id !== id));
         setAssignments(prev => prev.filter(a => a.shiftTypeId !== id));
+        (async () => {
+            try {
+                await shiftTypeApi.deleteShiftType(id);
+            } catch (e) {
+                console.error('[useSchedule] Failed to delete shift type', e);
+                // rollback
+                setShiftTypes(prevShiftTypes);
+                setAssignments(prevAssignments);
+            }
+        })();
     };
 
     const addUser = (user: Omit<User, 'id'>) => {
@@ -197,7 +231,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     return (
-        <ScheduleContext.Provider value={{ users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, updateWeekStatus, addShiftType, deleteShiftType, addUser, deleteUser }}>
+        <ScheduleContext.Provider value={{ users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, updateWeekStatus, addShiftType, updateShiftType, deleteShiftType, addUser, deleteUser }}>
             {children}
         </ScheduleContext.Provider>
     );
