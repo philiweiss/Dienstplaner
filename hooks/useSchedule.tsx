@@ -23,18 +23,33 @@ const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined
 export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [users, setUsers] = useState<User[]>([]);
     const [shiftTypes, setShiftTypes] = useState<ShiftType[]>(SHIFT_TYPES);
-    const [assignments, setAssignments] = useState<ShiftAssignment[]>(SHIFT_ASSIGNMENTS);
+    const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
     const [weekConfigs, setWeekConfigs] = useState<WeekConfig[]>(WEEK_CONFIGS);
 
-    // Load users from backend on mount
+    // Load users and assignments from backend on mount
     useEffect(() => {
         (async () => {
             try {
                 const data = await userApi.listUsers();
                 setUsers(data);
             } catch (e) {
-                // If backend not reachable, keep empty; UI can still function
                 console.error('[useSchedule] Failed to load users from API', e);
+            }
+            try {
+                // Load a rolling window: current week -4 to +8 weeks
+                const today = new Date();
+                const day = today.getDay();
+                const monday = new Date(today);
+                monday.setDate(today.getDate() - ((day + 6) % 7)); // get Monday of this week
+                const start = new Date(monday);
+                start.setDate(monday.getDate() - 28);
+                const end = new Date(monday);
+                end.setDate(monday.getDate() + 56);
+                const fmt = (d: Date) => d.toISOString().slice(0,10);
+                const dataA = await assignmentsApi.listAssignments(fmt(start), fmt(end));
+                setAssignments(dataA);
+            } catch (e) {
+                console.error('[useSchedule] Failed to load assignments from API', e);
             }
         })();
     }, []);
