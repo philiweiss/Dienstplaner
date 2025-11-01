@@ -12,6 +12,15 @@ const app = express();
 app.use(cors({ origin: '*'}));
 app.use(express.json());
 
+// Friendly root for environments hitting "/"
+app.get('/', (_req, res) => {
+  res.status(200).json({
+    service: 'Dienstplaner API',
+    health: '/api/health',
+    endpoints: '/README (see repository)'
+  });
+});
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, time: new Date().toISOString() });
 });
