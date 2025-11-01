@@ -1,25 +1,73 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { UsersIcon } from './icons';
+import { checkUser } from '../services/auth';
+
+type Step = 'username' | 'password' | 'setPassword';
 
 const Login: React.FC = () => {
+    const [step, setStep] = useState<Step>('username');
     const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [password2, setPassword2] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
+    const { loginUsernameOnly, loginWithPassword, setInitialPasswordAndLogin } = useAuth();
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleUsernameSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setLoading(true);
         try {
-            const ok = await login(username);
-            if (!ok) {
-                setError('Login fehlgeschlagen. Benutzer existiert nicht oder Serverfehler.');
+            const info = await checkUser(username.trim());
+            if (!info.exists) {
+                setError('Benutzer existiert nicht. Bitte wende dich an einen Admin.');
+                return;
             }
+            if (info.needsPassword) {
+                // Allow username-only login to start first-time flow (optional)
+                const res = await loginUsernameOnly(username.trim());
+                if (!res.ok) {
+                    setError('Erster Login fehlgeschlagen.');
+                    return;
+                }
+                setStep('setPassword');
+                return;
+            }
+            // User has password -> ask for password
+            setStep('password');
+        } catch (e: any) {
+            setError(e?.message || 'Fehler beim Prüfen des Benutzers.');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handlePasswordLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+            const ok = await loginWithPassword(username.trim(), password);
+            if (!ok) setError('Login fehlgeschlagen. Bitte prüfen Sie Benutzername und Passwort.');
+        } finally { setLoading(false); }
+    };
+
+    const handleSetPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        if (password.length < 8) {
+            setError('Passwort muss mindestens 8 Zeichen lang sein.');
+            return;
+        }
+        if (password !== password2) {
+            setError('Passwörter stimmen nicht überein.');
+            return;
+        }
+        setLoading(true);
+        try {
+            const ok = await setInitialPasswordAndLogin(username.trim(), password);
+            if (!ok) setError('Passwort konnte nicht gesetzt werden.');
+        } finally { setLoading(false); }
     };
 
     return (
@@ -30,42 +78,128 @@ const Login: React.FC = () => {
                         IT-Dienstplaner Pro
                     </h2>
                     <p className="mt-2 text-center text-sm text-gray-600">
-                        Melden Sie sich an, um fortzufahren
+                        {step === 'username' && 'Melden Sie sich an, um fortzufahren'}
+                        {step === 'password' && 'Bitte Passwort eingeben'}
+                        {step === 'setPassword' && 'Erster Login: Bitte Passwort festlegen'}
                     </p>
                 </div>
-                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-                    <div className="rounded-md shadow-sm -space-y-px">
-                        <div>
-                            <label htmlFor="username" className="sr-only">Benutzername</label>
-                            <input
-                                id="username"
-                                name="username"
-                                type="text"
-                                required
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-slate-500 focus:border-slate-500 focus:z-10 sm:text-sm"
-                                placeholder="Benutzername (z.B. Alice Admin)"
-                                disabled={loading}
-                            />
+
+                {step === 'username' && (
+                    <form className="mt-8 space-y-6" onSubmit={handleUsernameSubmit}>
+                        <div className="rounded-md shadow-sm -space-y-px">
+                            <div>
+                                <label htmlFor="username" className="sr-only">Benutzername</label>
+                                <input
+                                    id="username"
+                                    name="username"
+                                    type="text"
+                                    required
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-slate-500 focus:border-slate-500 focus:z-10 sm:text-sm"
+                                    placeholder="Benutzername (z.B. Alice Admin)"
+                                    disabled={loading}
+                                />
+                            </div>
                         </div>
-                    </div>
+                        {error && <p className="text-red-500 text-sm">{error}</p>}
+                        <div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${loading ? 'bg-slate-400' : 'bg-slate-700 hover:bg-slate-800'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500`}
+                            >
+                                {loading ? 'Prüfen…' : 'Weiter'}
+                            </button>
+                        </div>
+                    </form>
+                )}
 
-                     {error && <p className="text-red-500 text-sm">{error}</p>}
+                {step === 'password' && (
+                    <form className="mt-8 space-y-6" onSubmit={handlePasswordLogin}>
+                        <div className="rounded-md shadow-sm -space-y-px">
+                            <div>
+                                <label htmlFor="password" className="sr-only">Passwort</label>
+                                <input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-slate-500 focus:border-slate-500 focus:z-10 sm:text-sm"
+                                    placeholder="Passwort"
+                                    disabled={loading}
+                                />
+                            </div>
+                        </div>
+                        {error && <p className="text-red-500 text-sm">{error}</p>}
+                        <div className="flex justify-between text-sm">
+                            <button type="button" className="text-slate-600 hover:underline" onClick={() => setStep('username')}>Zurück</button>
+                        </div>
+                        <div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${loading ? 'bg-slate-400' : 'bg-slate-700 hover:bg-slate-800'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500`}
+                            >
+                                {loading ? 'Anmelden…' : 'Anmelden'}
+                            </button>
+                        </div>
+                    </form>
+                )}
 
-                    <div>
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${loading ? 'bg-slate-400' : 'bg-slate-700 hover:bg-slate-800'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500`}
-                        >
-                            {loading ? 'Anmelden…' : 'Anmelden'}
-                        </button>
-                    </div>
-                </form>
+                {step === 'setPassword' && (
+                    <form className="mt-8 space-y-6" onSubmit={handleSetPassword}>
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700">Neues Passwort</label>
+                                <input
+                                    id="new-password"
+                                    name="new-password"
+                                    type="password"
+                                    required
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500 sm:text-sm"
+                                    placeholder="Mindestens 8 Zeichen"
+                                    disabled={loading}
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="new-password2" className="block text-sm font-medium text-gray-700">Passwort wiederholen</label>
+                                <input
+                                    id="new-password2"
+                                    name="new-password2"
+                                    type="password"
+                                    required
+                                    value={password2}
+                                    onChange={(e) => setPassword2(e.target.value)}
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500 sm:text-sm"
+                                    disabled={loading}
+                                />
+                            </div>
+                        </div>
+                        {error && <p className="text-red-500 text-sm">{error}</p>}
+                        <div className="flex justify-between text-sm">
+                            <button type="button" className="text-slate-600 hover:underline" onClick={() => setStep('username')}>Abbrechen</button>
+                        </div>
+                        <div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${loading ? 'bg-slate-400' : 'bg-slate-700 hover:bg-slate-800'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500`}
+                            >
+                                {loading ? 'Speichern…' : 'Passwort setzen & anmelden'}
+                            </button>
+                        </div>
+                        <p className="text-xs text-gray-500">Tipp: Nach dem ersten Login können Sie unter Profil einen Passkey registrieren.</p>
+                    </form>
+                )}
+
                 <div className="text-center text-xs text-gray-500 p-4 border-t mt-4">
-                    <p className="font-semibold">Hinweis zur Demo</p>
-                    <p>In einer Produktionsumgebung würde hier eine Anbindung an ein LDAP / Active Directory erfolgen, um eine sichere Authentifizierung zu gewährleisten.</p>
+                    <p className="font-semibold">Hinweis</p>
+                    <p>Erster Login erfolgt über den Namen. Danach ist ein Passwort erforderlich. Passkeys folgen als Option.</p>
                 </div>
             </div>
         </div>

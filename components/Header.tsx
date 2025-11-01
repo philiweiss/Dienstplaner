@@ -5,8 +5,8 @@ import { Role } from '../types';
 import { CalendarIcon, CogIcon, LogoutIcon } from './icons';
 
 interface HeaderProps {
-    currentView: 'schedule' | 'admin';
-    setView: (view: 'schedule' | 'admin') => void;
+    currentView: 'schedule' | 'admin' | 'profile';
+    setView: (view: 'schedule' | 'admin' | 'profile') => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
@@ -38,6 +38,10 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
                                         Admin-Panel
                                     </a>
                                 )}
+                                <a onClick={() => setView('profile')} className={`${navItemClasses} ${currentView === 'profile' ? activeClasses : inactiveClasses}`}>
+                                    <span className="h-5 w-5 mr-2 inline-block rounded-full bg-slate-600 text-white text-xs leading-5 text-center">P</span>
+                                    Profil
+                                </a>
                             </div>
                         </nav>
                     </div>
@@ -66,6 +70,10 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
                             Admin
                         </a>
                     )}
+                    <a onClick={() => setView('profile')} className={`${navItemClasses} w-full justify-center ${currentView === 'profile' ? 'bg-slate-900 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>
+                        <span className="h-5 w-5 mr-2 inline-block rounded-full bg-slate-600 text-white text-xs leading-5 text-center">P</span>
+                        Profil
+                    </a>
                 </div>
             </nav>
         </header>
