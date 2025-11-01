@@ -68,3 +68,13 @@ export interface Absence {
     note?: string | null;
     userName?: string; // optional: provided by backend for convenience in admin views
 }
+
+export interface DayNote {
+    date: string; // YYYY-MM-DD
+    note: string;
+    adminOnly?: boolean; // visible only to admins if true
+    approved?: boolean; // must be approved by admin if created by user
+    updatedAt?: string; // ISO timestamp
+    createdBy?: string | null; // user id who created the note
+    approvedBy?: string | null; // admin id who approved
+}

@@ -110,6 +110,18 @@ async function run() {
     CONSTRAINT fk_abs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE KEY uk_user_date (user_id, date)
   );
+
+  CREATE TABLE IF NOT EXISTS day_notes (
+    date DATE PRIMARY KEY,
+    note VARCHAR(1000) NOT NULL,
+    admin_only TINYINT(1) NOT NULL DEFAULT 0,
+    approved TINYINT(1) NOT NULL DEFAULT 0,
+    created_by VARCHAR(36) NULL,
+    approved_by VARCHAR(36) NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_dn_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_dn_approved_by FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
+  );
   `;
 
   await conn.query(sql);
@@ -132,6 +144,15 @@ async function run() {
   try {
     await conn.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS anniversary DATE NULL");
   } catch (_) {}
+  // Add day_notes table / columns for existing DBs (best-effort)
+  try {
+    await conn.query("CREATE TABLE IF NOT EXISTS day_notes (date DATE PRIMARY KEY, note VARCHAR(1000) NOT NULL, admin_only TINYINT(1) NOT NULL DEFAULT 0, approved TINYINT(1) NOT NULL DEFAULT 0, created_by VARCHAR(36) NULL, approved_by VARCHAR(36) NULL, updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)");
+  } catch (_) {}
+  try { await conn.query("ALTER TABLE day_notes ADD COLUMN IF NOT EXISTS admin_only TINYINT(1) NOT NULL DEFAULT 0"); } catch (_) {}
+  try { await conn.query("ALTER TABLE day_notes ADD COLUMN IF NOT EXISTS approved TINYINT(1) NOT NULL DEFAULT 0"); } catch (_) {}
+  try { await conn.query("ALTER TABLE day_notes ADD COLUMN IF NOT EXISTS created_by VARCHAR(36) NULL"); } catch (_) {}
+  try { await conn.query("ALTER TABLE day_notes ADD COLUMN IF NOT EXISTS approved_by VARCHAR(36) NULL"); } catch (_) {}
+  try { await conn.query("ALTER TABLE day_notes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"); } catch (_) {}
 
   await conn.end();
   console.log('Database initialized.');
