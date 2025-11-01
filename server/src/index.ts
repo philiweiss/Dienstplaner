@@ -34,6 +34,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/shift-types', shiftTypesRouter);
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api/week-configs', weekConfigsRouter);
+app.use('/api/handovers', handoversRouter);
 
 // SPA fallback for all non-API GET requests
 app.get('*', (req, res) => {

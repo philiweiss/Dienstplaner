@@ -35,3 +35,15 @@ export interface WeekConfig {
     weekNumber: number;
     status: WeekStatus;
 }
+
+export type HandoverStatus = 'REQUESTED' | 'ACCEPTED' | 'REJECTED' | 'APPROVED' | 'DECLINED';
+
+export interface HandoverRequest {
+    id: string;
+    assignmentId: string;
+    fromUserId: string;
+    toUserId: string;
+    date: string; // YYYY-MM-DD
+    shiftTypeId: string;
+    status: HandoverStatus;
+}

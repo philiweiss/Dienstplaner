@@ -13,7 +13,8 @@ interface ScheduleContextType {
     assignShift: (date: string, shiftTypeId: string, userId: string) => void;
     unassignShift: (date: string, shiftTypeId: string, userId: string) => void;
     updateWeekStatus: (year: number, weekNumber: number, status: WeekStatus) => void;
-    addShiftType: (shiftType: Omit<ShiftType, 'id' | 'minUsers' | 'maxUsers'> & { minUsers: number, maxUsers: number }) => void;
+    addShiftType: (shiftType: Omit<ShiftType, 'id'>) => void;
+    updateShiftType: (id: string, fields: Partial<Omit<ShiftType, 'id'>>) => void;
     deleteShiftType: (id: string) => void;
     addUser: (user: Omit<User, 'id'>) => void;
     deleteUser: (id: string) => void;
@@ -23,11 +24,11 @@ const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined
 
 export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [users, setUsers] = useState<User[]>([]);
-    const [shiftTypes, setShiftTypes] = useState<ShiftType[]>(SHIFT_TYPES);
+    const [shiftTypes, setShiftTypes] = useState<ShiftType[]>([]);
     const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
     const [weekConfigs, setWeekConfigs] = useState<WeekConfig[]>([]);
 
-    // Load users, assignments, and week configs from backend on mount
+    // Load users, assignments, week configs, and shift types from backend on mount
     useEffect(() => {
         (async () => {
             try {
@@ -35,6 +36,13 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
                 setUsers(data);
             } catch (e) {
                 console.error('[useSchedule] Failed to load users from API', e);
+            }
+            try {
+                // Load shift types
+                const sts = await shiftTypeApi.listShiftTypes();
+                setShiftTypes(sts);
+            } catch (e) {
+                console.error('[useSchedule] Failed to load shift types from API', e);
             }
             try {
                 // Load a rolling window: current week -4 to +8 weeks
