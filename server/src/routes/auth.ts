@@ -92,9 +92,8 @@ router.post('/set-password', async (req, res) => {
   if (!parse.success) return res.status(400).json({ error: parse.error.format() });
   const { username, password } = parse.data;
   try {
-    const [rows] = await pool.query('SELECT id, name, role, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
-    // @ts-ignore - mysql2 types
-    const user = Array.isArray(rows) && rows.length ? rows[0] : null;
+    const [rows] = await pool.query<UserRow[]>('SELECT id, name, role, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
+    const user: UserRow | null = Array.isArray(rows) && rows.length ? (rows[0] as UserRow) : null;
     if (!user) return res.status(404).json({ error: 'Benutzer existiert nicht' });
     if (user.password_hash) return res.status(400).json({ error: 'Passwort bereits gesetzt' });
     const hash = await bcrypt.hash(password, 10);
