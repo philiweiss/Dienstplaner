@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { User, Role, ShiftType, ShiftAssignment, WeekConfig, WeekStatus, HandoverRequest, WeekShiftOverride, Absence, AbsenceType } from '../types';
+import { User, Role, ShiftType, ShiftAssignment, WeekConfig, WeekStatus, HandoverRequest, WeekShiftOverride, Absence, AbsenceType, DayNote } from '../types';
 import * as userApi from '../services/users';
 import * as assignmentsApi from '../services/assignments';
 import * as shiftTypeApi from '../services/shiftTypes';
@@ -7,6 +7,7 @@ import * as weekConfigsApi from '../services/weekConfigs';
 import * as weekOverridesApi from '../services/weekOverrides';
 import * as handoverApi from '../services/handovers';
 import * as absencesApi from '../services/absences';
+import * as dayNotesApi from '../services/dayNotes';
 
 interface ScheduleContextType {
     users: User[];
@@ -17,9 +18,12 @@ interface ScheduleContextType {
     handoversOutgoing: HandoverRequest[];
     handoversAdmin: HandoverRequest[];
     absences: Absence[];
+    dayNotes: DayNote[];
     isUserAbsent: (date: string, userId: string) => Absence | undefined;
     addAbsence: (userId: string, date: string, type: AbsenceType, note?: string | null) => Promise<void>;
     removeAbsence: (id: string) => Promise<void>;
+    setDayNote: (date: string, input: { note: string; adminOnly?: boolean; approved?: boolean; createdBy?: string | null; approvedBy?: string | null }) => Promise<void>;
+    removeDayNote: (date: string) => Promise<void>;
     refreshHandovers: (userId?: string, isAdmin?: boolean) => Promise<void>;
     requestHandover: (date: string, shiftTypeId: string, fromUserId: string, toUserId: string) => Promise<void>;
     respondHandover: (id: string, userId: string, action: 'accept' | 'reject') => Promise<void>;

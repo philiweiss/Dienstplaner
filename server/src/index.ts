@@ -54,6 +54,7 @@ app.use('/api/handovers', handoversRouter);
 app.use('/api/calendar', calendarRouter);
 app.use('/api/absences', absencesRouter);
 app.use('/api/stats', statsRouter);
+app.use('/api/day-notes', dayNotesRouter);
 
 // SPA fallback for all non-API GET requests
 app.get('*', (req, res) => {
