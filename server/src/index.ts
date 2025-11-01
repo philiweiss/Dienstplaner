@@ -9,7 +9,7 @@ import authRouter from './routes/auth.js';
 
 const app = express();
 
-app.use(cors({ origin: '*'}));
+app.use(cors({ origin: 'https://dev.wproducts.de' }));
 app.use(express.json());
 
 // Friendly root for environments hitting "/"
