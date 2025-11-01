@@ -213,13 +213,55 @@ const UserManagement: React.FC = () => {
 const AdminPanel: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'weeks' | 'shifts' | 'users' | 'handovers'>('weeks');
     
-    const TabButton: React.FC<{ tabId: 'weeks' | 'shifts' | 'users', children: React.ReactNode}> = ({tabId, children}) => {
+    const TabButton: React.FC<{ tabId: 'weeks' | 'shifts' | 'users' | 'handovers', children: React.ReactNode}> = ({tabId, children}) => {
         const isActive = activeTab === tabId;
         return (
             <button onClick={() => setActiveTab(tabId)} className={`px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${isActive ? 'bg-slate-200 text-slate-800' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>
                 {children}
             </button>
         )
+    };
+
+    const { user } = useAuth();
+    const { handoversAdmin, refreshHandovers, approveHandover, declineHandover, shiftTypes, users } = useSchedule();
+
+    useEffect(() => {
+        if (user?.role === Role.ADMIN) {
+            refreshHandovers(undefined, true);
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (activeTab === 'handovers' && user?.role === Role.ADMIN) {
+            refreshHandovers(undefined, true);
+        }
+    }, [activeTab, user]);
+
+    const HandoversManagement: React.FC = () => {
+        return (
+            <div className="space-y-3">
+                {handoversAdmin.length === 0 && (
+                    <p className="text-sm text-gray-600">Keine Übergaben warten auf Bestätigung.</p>
+                )}
+                {handoversAdmin.map(h => {
+                    const st = shiftTypes.find(s => s.id === h.shiftTypeId);
+                    const fromUser = users.find(u => u.id === h.fromUserId);
+                    const toUser = users.find(u => u.id === h.toUserId);
+                    return (
+                        <div key={h.id} className="p-3 bg-white rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm gap-2">
+                            <div>
+                                <p className="font-semibold text-gray-800">{st?.name} – {new Date(h.date).toLocaleDateString('de-DE')}</p>
+                                <p className="text-sm text-gray-600">Von {fromUser?.name} an {toUser?.name}</p>
+                            </div>
+                            <div className="flex gap-2 self-end sm:self-center">
+                                <button onClick={() => user && declineHandover(h.id, user.id)} className="px-3 py-1.5 rounded bg-gray-200 hover:bg-gray-300">Ablehnen</button>
+                                <button onClick={() => user && approveHandover(h.id, user.id)} className="px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700">Bestätigen</button>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
     };
 
     return (
@@ -232,6 +274,7 @@ const AdminPanel: React.FC = () => {
                     <TabButton tabId="weeks">Wochen</TabButton>
                     <TabButton tabId="shifts">Schichten</TabButton>
                     <TabButton tabId="users">Nutzer</TabButton>
+                    <TabButton tabId="handovers">Übergaben</TabButton>
                 </nav>
             </div>
 
@@ -239,6 +282,7 @@ const AdminPanel: React.FC = () => {
                 {activeTab === 'weeks' && <WeekManagement />}
                 {activeTab === 'shifts' && <ShiftManagement />}
                 {activeTab === 'users' && <UserManagement />}
+                {activeTab === 'handovers' && <HandoversManagement />}
             </div>
         </div>
     );

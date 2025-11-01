@@ -60,6 +60,9 @@ const AdminAssignControl: React.FC<{
 
 
 const ScheduleView: React.FC = () => {
+    const [calendarUrl, setCalendarUrl] = useState<string | null>(null);
+    const [calLoading, setCalLoading] = useState(false);
+    const [calError, setCalError] = useState<string | null>(null);
     const { user } = useAuth();
     const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover } = useSchedule();
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -96,17 +99,41 @@ const ScheduleView: React.FC = () => {
         setCurrentDate(newDate);
     };
 
-    const handleExport = () => {
+    const handleExport = async () => {
         if (!user) return;
-        const userAssignments = assignments
-            .filter(a => a.userIds.includes(user.id))
-            .map(a => ({
-                assignment: a,
-                shiftType: shiftTypes.find(st => st.id === a.shiftTypeId)!
-            }))
-            .filter(item => item.shiftType);
-        
-        generateICS(user, userAssignments);
+        setCalError(null);
+        setCalLoading(true);
+        try {
+            const res = await getOrCreateCalendarUrl(user.id);
+            setCalendarUrl(res.url);
+        } catch (e: any) {
+            setCalError(e?.message || 'Fehler beim Erzeugen der Kalender-URL');
+        } finally {
+            setCalLoading(false);
+        }
+    };
+
+    const handleRegenerate = async () => {
+        if (!user) return;
+        setCalError(null);
+        setCalLoading(true);
+        try {
+            const res = await regenerateCalendarUrl(user.id);
+            setCalendarUrl(res.url);
+        } catch (e: any) {
+            setCalError(e?.message || 'Fehler beim Neu-Generieren');
+        } finally {
+            setCalLoading(false);
+        }
+    };
+
+    const copyUrl = async () => {
+        if (!calendarUrl) return;
+        try {
+            await navigator.clipboard.writeText(calendarUrl);
+            // simple feedback via alert to keep minimal
+            alert('URL kopiert');
+        } catch (_) {}
     };
     
     return (
