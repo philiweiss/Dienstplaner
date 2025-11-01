@@ -7,7 +7,7 @@ const router = Router();
 
 router.get('/', async (_req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, name, role FROM users ORDER BY name ASC');
+    const [rows] = await pool.query('SELECT id, name, role, DATE_FORMAT(birthday, "%Y-%m-%d") as birthday, DATE_FORMAT(anniversary, "%Y-%m-%d") as anniversary FROM users ORDER BY name ASC');
     // @ts-ignore
     res.json(rows);
   } catch (e) {
@@ -18,7 +18,9 @@ router.get('/', async (_req, res) => {
 
 const CreateUserSchema = z.object({
   name: z.string().min(1),
-  role: z.enum(['User','Admin']).default('User')
+  role: z.enum(['User','Admin']).default('User'),
+  birthday: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  anniversary: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
 });
 
 router.post('/', async (req, res) => {

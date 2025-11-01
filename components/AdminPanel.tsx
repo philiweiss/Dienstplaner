@@ -4,6 +4,7 @@ import { useSchedule } from '../hooks/useSchedule';
 import { WeekStatus, Role, User, ShiftType } from '../types';
 import { LockClosedIcon, LockOpenIcon, PlusIcon, TrashIcon } from './icons';
 import { useAuth } from '../hooks/useAuth';
+import { adminResetPassword } from '../services/auth';
 
 // Re-using helper from ScheduleView
 const getWeekNumber = (d: Date): [number, number] => {
@@ -199,7 +200,7 @@ const ShiftManagement: React.FC = () => {
 };
 
 const UserManagement: React.FC = () => {
-    const { users, addUser, deleteUser } = useSchedule();
+    const { users, addUser, deleteUser, updateUser } = useSchedule();
     const [newUser, setNewUser] = useState({ name: '', role: Role.USER });
 
     const handleAddUser = (e: React.FormEvent) => {
@@ -232,14 +233,47 @@ const UserManagement: React.FC = () => {
             </form>
             <div className="space-y-3">
                 {users.map(user => (
-                    <div key={user.id} className="p-3 bg-white rounded-lg flex justify-between items-center shadow-sm">
+                    <div key={user.id} className="p-3 bg-white rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm gap-2">
                         <div>
                             <p className="font-semibold text-gray-800">{user.name}</p>
                             <p className="text-sm text-gray-500">{user.role}</p>
                         </div>
-                        <button onClick={() => window.confirm(`Benutzer "${user.name}" wirklich löschen?`) && deleteUser(user.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-full">
-                            <TrashIcon className="h-5 w-5" />
-                        </button>
+                        <div className="flex items-center gap-2 self-end sm:self-center">
+                            <button
+                                onClick={async () => {
+                                    const newName = window.prompt('Neuen Namen eingeben', user.name)?.trim();
+                                    if (!newName) return;
+                                    if (newName.length < 1) { alert('Name darf nicht leer sein.'); return; }
+                                    try {
+                                        updateUser(user.id, { name: newName });
+                                    } catch (e: any) {
+                                        alert(e?.message || 'Name konnte nicht geändert werden.');
+                                    }
+                                }}
+                                className="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-sm"
+                                title="Namen ändern"
+                            >Namen ändern</button>
+                            <button
+                                onClick={async () => {
+                                    const pw1 = window.prompt('Neues Passwort (mind. 8 Zeichen)') || '';
+                                    if (!pw1) return;
+                                    if (pw1.length < 8) { alert('Passwort muss mindestens 8 Zeichen lang sein.'); return; }
+                                    const pw2 = window.prompt('Neues Passwort wiederholen') || '';
+                                    if (pw1 !== pw2) { alert('Passwörter stimmen nicht überein.'); return; }
+                                    try {
+                                        await adminResetPassword({ userId: user.id }, pw1);
+                                        alert('Passwort zurückgesetzt. Gilt ab sofort.');
+                                    } catch (e: any) {
+                                        alert(e?.message || 'Passwort konnte nicht zurückgesetzt werden.');
+                                    }
+                                }}
+                                className="px-3 py-1.5 rounded bg-amber-600 text-white hover:bg-amber-700 text-sm"
+                                title="Passwort zurücksetzen"
+                            >Passwort zurücksetzen</button>
+                            <button onClick={() => window.confirm(`Benutzer \"${user.name}\" wirklich löschen?`) && deleteUser(user.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-full" title="Benutzer löschen">
+                                <TrashIcon className="h-5 w-5" />
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>

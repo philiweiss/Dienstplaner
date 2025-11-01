@@ -12,6 +12,26 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
     const { user, logout } = useAuth();
+    const [stats, setStats] = useState<UserStats | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function load() {
+            if (!user) return;
+            setLoading(true);
+            try {
+                const s = await getUserStats(user.id);
+                if (!cancelled) setStats(s);
+            } catch (_e) {
+                if (!cancelled) setStats(null);
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        }
+        load();
+        return () => { cancelled = true; };
+    }, [user?.id]);
 
     if (!user) return null;
 
@@ -46,9 +66,21 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
                             </div>
                         </nav>
                     </div>
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-4">
+                        {/* Compact stats */}
+                        <div className="hidden lg:flex items-center gap-2">
+                            <span className="text-slate-200 text-sm">Schichten:</span>
+                            <span className="px-2 py-0.5 rounded bg-slate-700 text-white text-sm font-semibold" title="Gesamtzahl deiner Schichten">
+                                {loading ? '…' : (stats?.total ?? 0)}
+                            </span>
+                            {stats?.byShiftType?.map((s) => (
+                                <span key={s.shiftTypeId} className={`px-2 py-0.5 rounded text-xs font-medium ${s.color}`} title={`${s.name}: ${s.count}`}>
+                                    {s.count}
+                                </span>
+                            ))}
+                        </div>
                         <div className="hidden sm:block">
-                             <span className="text-white text-sm mr-4">
+                             <span className="text-white text-sm mr-1">
                                 Angemeldet als: <span className="font-semibold">{user.name}</span> ({user.role})
                             </span>
                         </div>

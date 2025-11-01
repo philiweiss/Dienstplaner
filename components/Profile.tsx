@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { changePassword } from '../services/auth';
+import { getUserStats, type UserStats } from '../services/stats';
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
@@ -10,6 +11,29 @@ const Profile: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      if (!user) return;
+      setStatsError(null);
+      setStatsLoading(true);
+      try {
+        const s = await getUserStats(user.id);
+        if (!cancelled) setStats(s);
+      } catch (e: any) {
+        if (!cancelled) setStatsError(e?.message || 'Konnte Statistiken nicht laden');
+      } finally {
+        if (!cancelled) setStatsLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   if (!user) return null;
 

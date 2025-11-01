@@ -407,6 +407,20 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
         })();
     };
 
+    const updateUser = (id: string, fields: { name?: string; role?: Role }) => {
+        // optimistic update
+        const prevSnapshot = users;
+        setUsers(prev => prev.map(u => u.id === id ? { ...u, ...fields } : u));
+        (async () => {
+            try {
+                await userApi.updateUser(id, fields);
+            } catch (e) {
+                console.error('[useSchedule] Failed to update user', e);
+                setUsers(prevSnapshot);
+            }
+        })();
+    };
+
     return (
         <ScheduleContext.Provider value={{
             users,
@@ -432,6 +446,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
             updateShiftType,
             deleteShiftType,
             addUser,
+            updateUser,
             deleteUser,
             getEffectiveShiftLimits,
             updateWeekOverride
