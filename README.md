@@ -82,3 +82,43 @@ A simple Express + TypeScript backend with MySQL has been added under `server/`.
 
 ### Hinweise zur Frontend-Integration
 Aktuell nutzt das Frontend lokale In-Memory-Daten (`constants.ts`) und Context-State. Für eine Backend-Integration können die Hooks `useAuth` und `useSchedule` so angepasst werden, dass sie die obigen Endpunkte aufrufen. Auf Wunsch kann ich diese Umstellung vornehmen und die notwendigen Services hinzufügen.
+
+
+### Kalender-Export (ICS)
+
+Ab sofort kann jeder Nutzer einen geheimen Kalender-Link (ICS) erhalten, den man in Outlook/Apple/Google Kalender abonnieren kann. Neue Schichten werden so automatisch im Kalender geblockt (TRANSP: OPAQUE).
+
+- Endpunkte:
+  - `POST /api/calendar/token` — erzeugt (oder liefert) den geheimen Token eines Nutzers und gibt die Abo-URL zurück
+    - Body: `{ "userId": "<USER_ID>", "regenerate": false }`
+    - Antwort: `{ "token": "...", "url": "https://<HOST>/api/calendar/<token>.ics" }`
+    - Hinweis: `regenerate=true` erzeugt einen neuen Token und macht den alten Link ungültig.
+  - `GET /api/calendar/:token.ics` — öffentliche ICS-Feed-URL (keine Auth), die von Kalender-Apps regelmäßig aktualisiert wird.
+
+- Datenquelle: Alle Zuweisungen (`assignment_users`) des Nutzers im Bereich: letzte 30 Tage bis +365 Tage.
+- Zeiten: Die Schicht-Start-/Endzeiten stammen aus `shift_types`. Übernacht-Schichten (Ende <= Start) werden automatisch auf den Folgetag gelegt.
+- Zeitzone: Standard `Europe/Berlin`. Über ENV konfigurierbar (`TIMEZONE`).
+- URL-Erzeugung: Falls `BASE_URL` gesetzt ist (z. B. `https://dev.wproducts.de`), wird diese verwendet; sonst wird sie aus der eingehenden Anfrage abgeleitet.
+
+#### Outlook: Kalender abonnieren
+1. In Outlook (Desktop): Kalender > Kalender hinzufügen > Aus dem Internet abonnieren.
+2. ICS-URL einfügen: `https://<HOST>/api/calendar/<token>.ics`.
+3. Benennen und speichern. Outlook synchronisiert in Intervallen automatisch.
+
+#### Apple Kalender (macOS/iOS)
+- macOS: Kalender > Ablage > Neues Kalenderabonnement > ICS-URL einfügen.
+- iOS: Einstellungen > Kalender > Accounts > Account hinzufügen > Anderer > Kalenderabo hinzufügen > ICS-URL einfügen.
+
+#### Google Kalender
+- In Google Kalender: Weitere Kalender > Per URL > ICS-URL einfügen > Kalender hinzufügen.
+
+#### Sicherheit
+- Die ICS-URL enthält einen geheimen Token. Wer den Link kennt, sieht die Schichten dieses Nutzers. Bei Verdacht auf Leck: über `POST /api/calendar/token` mit `regenerate: true` einen neuen Token generieren und den Kalender neu abonnieren.
+
+#### Migration (Datenbank)
+- Neue Spalte: `users.calendar_token` (unique, optional). Das Init-Skript fügt sie automatisch hinzu (sowohl bei Neuinstallation als auch best-effort per ALTER TABLE).
+- Manuell (falls nötig):
+  ```sql
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS calendar_token VARCHAR(64) NULL;
+  ALTER TABLE users ADD UNIQUE KEY uk_calendar_token (calendar_token);
+  ```

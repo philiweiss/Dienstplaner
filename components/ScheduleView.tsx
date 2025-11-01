@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSchedule } from '../hooks/useSchedule';
 import { Role, WeekStatus, User } from '../types';
@@ -61,8 +61,9 @@ const AdminAssignControl: React.FC<{
 
 const ScheduleView: React.FC = () => {
     const { user } = useAuth();
-    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift } = useSchedule();
+    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover } = useSchedule();
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [transferModal, setTransferModal] = useState<{ open: boolean; date: string; shiftTypeId: string; toUserId: string } | null>(null);
 
     const [year, weekNumber] = getWeekNumber(currentDate);
 
@@ -82,6 +83,12 @@ const ScheduleView: React.FC = () => {
             return date;
         });
     }, [currentDate]);
+
+    useEffect(() => {
+        if (user) {
+            refreshHandovers(user.id);
+        }
+    }, [user]);
 
     const changeWeek = (direction: 'prev' | 'next') => {
         const newDate = new Date(currentDate);
@@ -186,11 +193,18 @@ const ScheduleView: React.FC = () => {
                                                 {assignedUsers.map(assignedUser => (
                                                     <div key={assignedUser.id} className={`flex items-center justify-between p-1.5 rounded text-sm font-medium ${user?.id === assignedUser.id ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                                                         <span>{assignedUser.name}</span>
-                                                        {(isAdmin || (user?.id === assignedUser.id && isWeekOpen)) && (
-                                                            <button onClick={() => handleSignOut(assignedUser.id)} className="text-red-500 hover:text-red-700 p-1">
-                                                                <TrashIcon className="h-4 w-4" />
-                                                            </button>
-                                                        )}
+                                                        <div className="flex items-center gap-1">
+                                                            {(isAdmin || (user?.id === assignedUser.id && isWeekOpen)) && (
+                                                                <button onClick={() => handleSignOut(assignedUser.id)} className="text-red-500 hover:text-red-700 p-1" title="Austragen">
+                                                                    <TrashIcon className="h-4 w-4" />
+                                                                </button>
+                                                            )}
+                                                            {user?.id === assignedUser.id && isWeekOpen && (
+                                                                <button onClick={() => setTransferModal({ open: true, date: dateString, shiftTypeId: shiftType.id, toUserId: '' })} className="text-slate-700 hover:text-slate-900 text-xs font-semibold underline px-1">
+                                                                    Übergeben
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>

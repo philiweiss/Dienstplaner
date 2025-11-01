@@ -10,6 +10,7 @@ import assignmentsRouter from './routes/assignments.js';
 import weekConfigsRouter from './routes/weekConfigs.js';
 import authRouter from './routes/auth.js';
 import handoversRouter from './routes/handovers.js';
+import calendarRouter from './routes/calendar.js';
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use('/api/shift-types', shiftTypesRouter);
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api/week-configs', weekConfigsRouter);
 app.use('/api/handovers', handoversRouter);
+app.use('/api/calendar', calendarRouter);
 
 // SPA fallback for all non-API GET requests
 app.get('*', (req, res) => {

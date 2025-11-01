@@ -1,15 +1,24 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { User, Role, ShiftType, ShiftAssignment, WeekConfig, WeekStatus } from '../types';
+import { User, Role, ShiftType, ShiftAssignment, WeekConfig, WeekStatus, HandoverRequest } from '../types';
 import * as userApi from '../services/users';
 import * as assignmentsApi from '../services/assignments';
 import * as shiftTypeApi from '../services/shiftTypes';
 import * as weekConfigsApi from '../services/weekConfigs';
+import * as handoverApi from '../services/handovers';
 
 interface ScheduleContextType {
     users: User[];
     shiftTypes: ShiftType[];
     assignments: ShiftAssignment[];
     weekConfigs: WeekConfig[];
+    handoversIncoming: HandoverRequest[];
+    handoversOutgoing: HandoverRequest[];
+    handoversAdmin: HandoverRequest[];
+    refreshHandovers: (userId?: string, isAdmin?: boolean) => Promise<void>;
+    requestHandover: (date: string, shiftTypeId: string, fromUserId: string, toUserId: string) => Promise<void>;
+    respondHandover: (id: string, userId: string, action: 'accept' | 'reject') => Promise<void>;
+    approveHandover: (id: string, adminId: string) => Promise<void>;
+    declineHandover: (id: string, adminId: string) => Promise<void>;
     assignShift: (date: string, shiftTypeId: string, userId: string) => void;
     unassignShift: (date: string, shiftTypeId: string, userId: string) => void;
     updateWeekStatus: (year: number, weekNumber: number, status: WeekStatus) => void;
@@ -27,6 +36,9 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [shiftTypes, setShiftTypes] = useState<ShiftType[]>([]);
     const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
     const [weekConfigs, setWeekConfigs] = useState<WeekConfig[]>([]);
+    const [handoversIncoming, setHandoversIncoming] = useState<HandoverRequest[]>([]);
+    const [handoversOutgoing, setHandoversOutgoing] = useState<HandoverRequest[]>([]);
+    const [handoversAdmin, setHandoversAdmin] = useState<HandoverRequest[]>([]);
 
     // Load users, assignments, week configs, and shift types from backend on mount
     useEffect(() => {
@@ -71,6 +83,23 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
         })();
     }, []);
 
+    // Handovers API wrappers
+    const refreshHandovers = async (userId?: string, isAdmin?: boolean) => {
+        try {
+            if (userId) {
+                const mine = await handoverApi.listMine(userId);
+                setHandoversIncoming(mine.incoming);
+                setHandoversOutgoing(mine.outgoing);
+            }
+            if (isAdmin) {
+                const admin = await handoverApi.listAdmin();
+                setHandoversAdmin(admin);
+            }
+        } catch (e) {
+            console.error('[useSchedule] Failed to load handovers', e);
+        }
+    };
+
     const assignShift = (date: string, shiftTypeId: string, userId: string) => {
         // optimistic update
         setAssignments(prev => {
@@ -100,6 +129,59 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
                 )));
             }
         })();
+    };
+
+    const requestHandover = async (date: string, shiftTypeId: string, fromUserId: string, toUserId: string) => {
+        try {
+            await handoverApi.createHandover({ date, shiftTypeId, fromUserId, toUserId });
+            // refresh lists for both users is ideal; here we refresh fromUser side
+            await refreshHandovers(fromUserId);
+        } catch (e) {
+            console.error('[useSchedule] Failed to create handover', e);
+            throw e;
+        }
+    };
+
+    const respondHandover = async (id: string, userId: string, action: 'accept' | 'reject') => {
+        try {
+            await handoverApi.respond(id, userId, action);
+            await refreshHandovers(userId);
+        } catch (e) {
+            console.error('[useSchedule] Failed to respond to handover', e);
+            throw e;
+        }
+    };
+
+    const approveHandover = async (id: string, adminId: string) => {
+        try {
+            const res = await handoverApi.approve(id, adminId);
+            if (res.status === 'APPROVED') {
+                // Optimistically reflect on assignments by reloading rolling window
+                const today = new Date();
+                const day = today.getDay();
+                const monday = new Date(today);
+                monday.setDate(today.getDate() - ((day + 6) % 7));
+                const start = new Date(monday); start.setDate(monday.getDate() - 28);
+                const end = new Date(monday); end.setDate(monday.getDate() + 56);
+                const fmt = (d: Date) => d.toISOString().slice(0,10);
+                const dataA = await assignmentsApi.listAssignments(fmt(start), fmt(end));
+                setAssignments(dataA);
+                await refreshHandovers(undefined, true);
+            }
+        } catch (e) {
+            console.error('[useSchedule] Failed to approve handover', e);
+            throw e;
+        }
+    };
+
+    const declineHandover = async (id: string, adminId: string) => {
+        try {
+            await handoverApi.decline(id, adminId);
+            await refreshHandovers(undefined, true);
+        } catch (e) {
+            console.error('[useSchedule] Failed to decline handover', e);
+            throw e;
+        }
     };
 
     const unassignShift = (date: string, shiftTypeId: string, userId: string) => {
@@ -231,7 +313,28 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     return (
-        <ScheduleContext.Provider value={{ users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, updateWeekStatus, addShiftType, updateShiftType, deleteShiftType, addUser, deleteUser }}>
+        <ScheduleContext.Provider value={{
+            users,
+            shiftTypes,
+            assignments,
+            weekConfigs,
+            handoversIncoming,
+            handoversOutgoing,
+            handoversAdmin,
+            refreshHandovers,
+            requestHandover,
+            respondHandover,
+            approveHandover,
+            declineHandover,
+            assignShift,
+            unassignShift,
+            updateWeekStatus,
+            addShiftType,
+            updateShiftType,
+            deleteShiftType,
+            addUser,
+            deleteUser
+        }}>
             {children}
         </ScheduleContext.Provider>
     );

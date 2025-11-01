@@ -36,7 +36,9 @@ async function run() {
   CREATE TABLE IF NOT EXISTS users (
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    role ENUM('User','Admin') NOT NULL
+    role ENUM('User','Admin') NOT NULL,
+    calendar_token VARCHAR(64) NULL,
+    UNIQUE KEY uk_calendar_token (calendar_token)
   );
 
   CREATE TABLE IF NOT EXISTS shift_types (
@@ -87,6 +89,16 @@ async function run() {
   `;
 
   await conn.query(sql);
+
+  // Attempt to migrate existing databases: add calendar_token if missing
+  try {
+    await conn.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS calendar_token VARCHAR(64) NULL");
+  } catch (_) {}
+  // Unique index (best-effort); may fail if not supported or already exists
+  try {
+    await conn.query("ALTER TABLE users ADD UNIQUE KEY uk_calendar_token (calendar_token)");
+  } catch (_) {}
+
   await conn.end();
   console.log('Database initialized.');
 }
