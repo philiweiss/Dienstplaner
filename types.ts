@@ -36,6 +36,14 @@ export interface WeekConfig {
     status: WeekStatus;
 }
 
+export interface WeekShiftOverride {
+    year: number;
+    weekNumber: number;
+    shiftTypeId: string;
+    minUsers?: number;
+    maxUsers?: number;
+}
+
 export type HandoverStatus = 'REQUESTED' | 'ACCEPTED' | 'REJECTED' | 'APPROVED' | 'DECLINED';
 
 export interface HandoverRequest {

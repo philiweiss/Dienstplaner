@@ -11,6 +11,7 @@ import weekConfigsRouter from './routes/weekConfigs.js';
 import authRouter from './routes/auth.js';
 import handoversRouter from './routes/handovers.js';
 import calendarRouter from './routes/calendar.js';
+import weekOverridesRouter from './routes/weekOverrides.js';
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/shift-types', shiftTypesRouter);
 app.use('/api/assignments', assignmentsRouter);
 app.use('/api/week-configs', weekConfigsRouter);
+app.use('/api/week-overrides', weekOverridesRouter);
 app.use('/api/handovers', handoversRouter);
 app.use('/api/calendar', calendarRouter);
 

@@ -74,6 +74,16 @@ async function run() {
     PRIMARY KEY (year, week_number)
   );
 
+  CREATE TABLE IF NOT EXISTS week_shift_overrides (
+    year INT NOT NULL,
+    week_number INT NOT NULL,
+    shift_type_id VARCHAR(36) NOT NULL,
+    min_users INT NULL,
+    max_users INT NULL,
+    PRIMARY KEY (year, week_number, shift_type_id),
+    CONSTRAINT fk_wso_shift_type FOREIGN KEY (shift_type_id) REFERENCES shift_types(id) ON DELETE CASCADE
+  );
+
   CREATE TABLE IF NOT EXISTS handover_requests (
     id VARCHAR(36) PRIMARY KEY,
     assignment_id VARCHAR(36) NOT NULL,
