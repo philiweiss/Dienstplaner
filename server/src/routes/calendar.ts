@@ -134,6 +134,14 @@ router.get('/:token.ics', async (req, res) => {
       [user.id, fmt(past), fmt(future)]
     );
 
+    const [absRows]: any = await pool.query(
+      `SELECT id, DATE_FORMAT(date, '%Y-%m-%d') AS date, type, COALESCE(note, '') AS note
+       FROM absences
+       WHERE user_id = ? AND date BETWEEN ? AND ?
+       ORDER BY date ASC`,
+      [user.id, fmt(past), fmt(future)]
+    );
+
     const lines: string[] = [];
     lines.push('BEGIN:VCALENDAR');
     lines.push('VERSION:2.0');
@@ -165,6 +173,31 @@ router.get('/:token.ics', async (req, res) => {
       lines.push(`DTEND:${formatICSDate(dtEnd, TZ)}`);
       lines.push('TRANSP:OPAQUE'); // block time
       lines.push(`SUMMARY:${escapeText(summary)}`);
+      lines.push('END:VEVENT');
+    }
+
+    // Absences as all-day events
+    const fmtDateOnly = (s: string) => s.replace(/-/g, ''); // YYYYMMDD
+    for (const a of absRows as any[]) {
+      const uid = `ABS-${a.id}-${user.id}@dienstplaner`;
+      const start = fmtDateOnly(a.date);
+      // DTEND is non-inclusive next day for all-day
+      const d = new Date(a.date + 'T00:00:00Z');
+      d.setUTCDate(d.getUTCDate() + 1);
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(d.getUTCDate()).padStart(2, '0');
+      const end = `${y}${m}${dd}`;
+      const summary = a.type === 'VACATION' ? 'Urlaub' : 'Seminar';
+
+      lines.push('BEGIN:VEVENT');
+      lines.push(`UID:${uid}`);
+      lines.push(`DTSTAMP:${stamp}`);
+      lines.push(`DTSTART;VALUE=DATE:${start}`);
+      lines.push(`DTEND;VALUE=DATE:${end}`);
+      lines.push('TRANSP:OPAQUE');
+      lines.push(`SUMMARY:${escapeText(summary)}`);
+      if (a.note) lines.push(`DESCRIPTION:${escapeText(a.note)}`);
       lines.push('END:VEVENT');
     }
 

@@ -6,7 +6,7 @@ async function seed() {
   // Shift types
   await pool.query(`INSERT IGNORE INTO shift_types (id, name, start_time, end_time, color, min_users, max_users) VALUES
     ('st1','Frühschicht','06:00','14:00','bg-sky-200 text-sky-800',2,2),
-    ('st2','Spätschicht','14:00','22:00','bg-amber-200 text-amber-800',1,1),
+    ('st2','Spätschicht','14:00','22:00','bg-amber-200 text-amber-800',1,1)
   `);
 
   // Assignments and users

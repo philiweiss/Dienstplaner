@@ -1,11 +1,12 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { User, Role, ShiftType, ShiftAssignment, WeekConfig, WeekStatus, HandoverRequest, WeekShiftOverride } from '../types';
+import { User, Role, ShiftType, ShiftAssignment, WeekConfig, WeekStatus, HandoverRequest, WeekShiftOverride, Absence, AbsenceType } from '../types';
 import * as userApi from '../services/users';
 import * as assignmentsApi from '../services/assignments';
 import * as shiftTypeApi from '../services/shiftTypes';
 import * as weekConfigsApi from '../services/weekConfigs';
 import * as weekOverridesApi from '../services/weekOverrides';
 import * as handoverApi from '../services/handovers';
+import * as absencesApi from '../services/absences';
 
 interface ScheduleContextType {
     users: User[];

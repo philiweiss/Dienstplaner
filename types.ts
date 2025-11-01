@@ -55,3 +55,13 @@ export interface HandoverRequest {
     shiftTypeId: string;
     status: HandoverStatus;
 }
+
+export type AbsenceType = 'VACATION' | 'SEMINAR';
+
+export interface Absence {
+    id: string;
+    userId: string;
+    date: string; // YYYY-MM-DD
+    type: AbsenceType;
+    note?: string | null;
+}
