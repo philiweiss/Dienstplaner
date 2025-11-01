@@ -166,6 +166,39 @@ const ScheduleView: React.FC = () => {
                 </div>
             </div>
 
+            {calLoading && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800 text-sm">
+                    Kalender-Link wird erzeugt...
+                </div>
+            )}
+            {calError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
+                    {calError}
+                </div>
+            )}
+            {calendarUrl && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md text-green-900">
+                    <p className="font-semibold mb-2">Dein Kalender-Abo-Link (ICS)</p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                        <input
+                            type="text"
+                            readOnly
+                            value={calendarUrl}
+                            className="w-full border border-green-300 rounded px-2 py-1 bg-white text-gray-800"
+                            onFocus={(e) => e.currentTarget.select()}
+                        />
+                        <div className="flex gap-2 mt-2 sm:mt-0">
+                            <button onClick={copyUrl} className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800">Kopieren</button>
+                            <a href={calendarUrl} target="_blank" rel="noreferrer" className="px-3 py-1.5 rounded bg-white border border-slate-300 text-slate-700 hover:bg-slate-50">Öffnen</a>
+                            <button onClick={handleRegenerate} className="px-3 py-1.5 rounded bg-white border border-slate-300 text-slate-700 hover:bg-slate-50">Neu generieren</button>
+                        </div>
+                    </div>
+                    <p className="text-xs text-green-800 mt-2">
+                        Tipp: Als Internet-/URL-Kalender in Outlook/Apple/Google abonnieren. Bei "Neu generieren" wird der alte Link ungültig.
+                    </p>
+                </div>
+            )}
+
             {/* Eingehende Übergaben */}
             {user && handoversIncoming.filter(h => h.status === 'REQUESTED').length > 0 && (
                 <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
