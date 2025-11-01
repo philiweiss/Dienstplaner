@@ -16,6 +16,10 @@ interface ScheduleContextType {
     handoversIncoming: HandoverRequest[];
     handoversOutgoing: HandoverRequest[];
     handoversAdmin: HandoverRequest[];
+    absences: Absence[];
+    isUserAbsent: (date: string, userId: string) => Absence | undefined;
+    addAbsence: (userId: string, date: string, type: AbsenceType, note?: string | null) => Promise<void>;
+    removeAbsence: (id: string) => Promise<void>;
     refreshHandovers: (userId?: string, isAdmin?: boolean) => Promise<void>;
     requestHandover: (date: string, shiftTypeId: string, fromUserId: string, toUserId: string) => Promise<void>;
     respondHandover: (id: string, userId: string, action: 'accept' | 'reject') => Promise<void>;
@@ -44,8 +48,9 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [handoversOutgoing, setHandoversOutgoing] = useState<HandoverRequest[]>([]);
     const [handoversAdmin, setHandoversAdmin] = useState<HandoverRequest[]>([]);
     const [weekOverrides, setWeekOverrides] = useState<WeekShiftOverride[]>([]);
+    const [absences, setAbsences] = useState<Absence[]>([]);
 
-    // Load users, assignments, week configs, and shift types from backend on mount
+    // Load users, assignments, week configs, shift types, and absences from backend on mount
     useEffect(() => {
         (async () => {
             try {
@@ -74,6 +79,12 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
                 const fmt = (d: Date) => d.toISOString().slice(0,10);
                 const dataA = await assignmentsApi.listAssignments(fmt(start), fmt(end));
                 setAssignments(dataA);
+                try {
+                    const dataAbs = await absencesApi.list(fmt(start), fmt(end));
+                    setAbsences(dataAbs);
+                } catch (e) {
+                    console.error('[useSchedule] Failed to load absences from API', e);
+                }
             } catch (e) {
                 console.error('[useSchedule] Failed to load assignments from API', e);
             }
@@ -155,7 +166,13 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
         }
     };
 
+    const isUserAbsent = (date: string, userId: string) => absences.find(a => a.date === date && a.userId === userId);
+
     const assignShift = (date: string, shiftTypeId: string, userId: string) => {
+        // Prevent assigning if absent (UI-side guard; backend also enforces)
+        if (isUserAbsent(date, userId)) {
+            return;
+        }
         // optimistic update
         setAssignments(prev => {
             const assignmentIndex = prev.findIndex(a => a.date === date && a.shiftTypeId === shiftTypeId);
@@ -184,6 +201,28 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
                 )));
             }
         })();
+    };
+
+    const addAbsence = async (userId: string, date: string, type: AbsenceType, note?: string | null) => {
+        try {
+            const created = await absencesApi.create(userId, date, type, note);
+            setAbsences(prev => [...prev, created]);
+        } catch (e) {
+            console.error('[useSchedule] Failed to create absence', e);
+            throw e;
+        }
+    };
+
+    const removeAbsence = async (id: string) => {
+        const prev = absences;
+        setAbsences(prev => prev.filter(a => a.id !== id));
+        try {
+            await absencesApi.remove(id);
+        } catch (e) {
+            console.error('[useSchedule] Failed to delete absence', e);
+            setAbsences(prev);
+            throw e;
+        }
     };
 
     const requestHandover = async (date: string, shiftTypeId: string, fromUserId: string, toUserId: string) => {
@@ -376,6 +415,10 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
             handoversIncoming,
             handoversOutgoing,
             handoversAdmin,
+            absences,
+            isUserAbsent,
+            addAbsence,
+            removeAbsence,
             refreshHandovers,
             requestHandover,
             respondHandover,

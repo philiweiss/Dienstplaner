@@ -119,7 +119,18 @@ const Login: React.FC = () => {
                     <>
                         <div className="mt-4 flex flex-col items-center space-y-2">
                             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 shadow text-white flex items-center justify-center text-2xl font-bold select-none">
-                                {username.trim().slice(0, 2).toUpperCase() || '??'}
+                                {(() => {
+                                    const n = username.trim();
+                                    if (!n) return '??';
+                                    const parts = n.split(/\s+/).filter(Boolean);
+                                    if (parts.length === 1) {
+                                        const w = parts[0];
+                                        return w.slice(0, 2).toLocaleUpperCase('de-DE');
+                                    }
+                                    const first = parts[0][0] || '';
+                                    const last = parts[parts.length - 1][0] || '';
+                                    return (first + last).toLocaleUpperCase('de-DE');
+                                })()}
                             </div>
                             <div className="text-sm text-gray-600 font-medium">
                                 {username}

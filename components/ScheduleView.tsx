@@ -20,13 +20,13 @@ const AdminAssignControl: React.FC<{
     shiftTypeId: string;
     assignedUsers: User[];
 }> = ({ date, shiftTypeId, assignedUsers }) => {
-    const { users, assignShift } = useSchedule();
+    const { users, assignShift, isUserAbsent } = useSchedule();
     const [selectedUserId, setSelectedUserId] = useState('');
 
     const availableUsers = useMemo(() => {
         const assignedIds = new Set(assignedUsers.map(u => u.id));
-        return users.filter(u => !assignedIds.has(u.id));
-    }, [users, assignedUsers]);
+        return users.filter(u => !assignedIds.has(u.id) && !isUserAbsent(date, u.id));
+    }, [users, assignedUsers, date, isUserAbsent]);
 
     const handleAssign = () => {
         if (selectedUserId) {
@@ -64,7 +64,7 @@ const ScheduleView: React.FC = () => {
     const [calLoading, setCalLoading] = useState(false);
     const [calError, setCalError] = useState<string | null>(null);
     const { user } = useAuth();
-    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover, getEffectiveShiftLimits } = useSchedule();
+    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, removeAbsence } = useSchedule();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [transferModal, setTransferModal] = useState<{ open: boolean; date: string; shiftTypeId: string; toUserId: string } | null>(null);
 
@@ -233,9 +233,61 @@ const ScheduleView: React.FC = () => {
                             <h3 className="font-bold text-center text-gray-700">
                                 {day.toLocaleDateString('de-DE', { weekday: 'long' })}
                             </h3>
-                            <p className="text-center text-sm text-gray-500 mb-4">
+                            <p className="text-center text-sm text-gray-500 mb-2">
                                 {day.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })}
                             </p>
+
+                            {/* Abwesenheit (Urlaub/Seminar) für aktuellen Nutzer */}
+                            {user && (
+                                <div className="mb-3 flex items-center justify-center gap-2">
+                                    {isWeekOpen ? (
+                                        (() => {
+                                            const myAbs = isUserAbsent(dateString, user.id);
+                                            if (myAbs) {
+                                                const label = myAbs.type === 'VACATION' ? 'Urlaub' : 'Seminar';
+                                                return (
+                                                    <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">
+                                                        <span>{label}</span>
+                                                        <button
+                                                            onClick={() => removeAbsence(myAbs.id)}
+                                                            className="text-blue-700 hover:text-blue-900"
+                                                            title="Abwesenheit entfernen"
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                );
+                                            }
+                                            return (
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => addAbsence(user.id, dateString, 'VACATION')}
+                                                        className="px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700"
+                                                    >
+                                                        Urlaub
+                                                    </button>
+                                                    <button
+                                                        onClick={() => addAbsence(user.id, dateString, 'SEMINAR')}
+                                                        className="px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700"
+                                                    >
+                                                        Seminar
+                                                    </button>
+                                                </div>
+                                            );
+                                        })()
+                                    ) : (
+                                        (() => {
+                                            const myAbs = isUserAbsent(dateString, user.id);
+                                            return myAbs ? (
+                                                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">
+                                                    <span>{myAbs.type === 'VACATION' ? 'Urlaub' : 'Seminar'}</span>
+                                                </div>
+                                            ) : null;
+                                        })()
+                                    )}
+                                </div>
+                            )}
+
                             <div className="space-y-3">
                                 {shiftTypes.map(shiftType => {
                                     const assignment = assignments.find(a => a.date === dateString && a.shiftTypeId === shiftType.id);
@@ -245,7 +297,7 @@ const ScheduleView: React.FC = () => {
                                     const isFull = assignedUsers.length >= effective.maxUsers;
                                     const isUnderstaffed = assignedUsers.length < effective.minUsers;
                                     const userIsAssigned = user ? assignedUsers.some(u => u.id === user.id) : false;
-                                    const canSelfRegister = !isFull && isWeekOpen && !userIsAssigned;
+                                    const canSelfRegister = !isFull && isWeekOpen && !userIsAssigned && !(user && isUserAbsent(dateString, user.id));
                                     
                                     const handleSignUp = () => {
                                        if(canSelfRegister && user) {
