@@ -139,6 +139,31 @@ const ScheduleView: React.FC = () => {
                 </div>
             </div>
 
+            {/* Eingehende Übergaben */}
+            {user && handoversIncoming.filter(h => h.status === 'REQUESTED').length > 0 && (
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                    <p className="font-semibold text-amber-800 mb-2">Offene Übergabe-Anfragen an dich</p>
+                    <div className="space-y-2">
+                        {handoversIncoming.filter(h => h.status === 'REQUESTED').map(h => {
+                            const st = shiftTypes.find(s => s.id === h.shiftTypeId);
+                            const fromUser = users.find(u => u.id === h.fromUserId);
+                            return (
+                                <div key={h.id} className="flex items-center justify-between text-sm">
+                                    <span>
+                                        {fromUser?.name} möchte dir die Schicht {st?.name} am {new Date(h.date).toLocaleDateString('de-DE')} übergeben.
+                                    </span>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => respondHandover(h.id, user.id, 'reject')} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">Ablehnen</button>
+                                        <button onClick={() => respondHandover(h.id, user.id, 'accept')} className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">Annehmen</button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {/* Wochenraster */}
             <div className="grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-gray-200">
                 {daysOfWeek.map(day => {
                     const dateString = day.toISOString().split('T')[0];
