@@ -55,6 +55,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     }, []);
 
     const assignShift = (date: string, shiftTypeId: string, userId: string) => {
+        // optimistic update
         setAssignments(prev => {
             const assignmentIndex = prev.findIndex(a => a.date === date && a.shiftTypeId === shiftTypeId);
             if (assignmentIndex > -1) {
@@ -68,6 +69,20 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
             }
             return [...prev, { date, shiftTypeId, userIds: [userId] }];
         });
+        // persist
+        (async () => {
+            try {
+                await assignmentsApi.assign(date, shiftTypeId, userId);
+            } catch (e) {
+                console.error('[useSchedule] Failed to persist assignment', e);
+                // rollback on error
+                setAssignments(prev => prev.map(a => (
+                    a.date === date && a.shiftTypeId === shiftTypeId
+                      ? { ...a, userIds: a.userIds.filter(id => id !== userId) }
+                      : a
+                )));
+            }
+        })();
     };
 
     const unassignShift = (date: string, shiftTypeId: string, userId: string) => {
