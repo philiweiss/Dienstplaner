@@ -125,6 +125,13 @@ async function run() {
   try {
     await conn.query("ALTER TABLE users ADD UNIQUE KEY uk_calendar_token (calendar_token)");
   } catch (_) {}
+  // Add birthday/anniversary columns for existing DBs
+  try {
+    await conn.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS birthday DATE NULL");
+  } catch (_) {}
+  try {
+    await conn.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS anniversary DATE NULL");
+  } catch (_) {}
 
   await conn.end();
   console.log('Database initialized.');
