@@ -42,6 +42,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [handoversIncoming, setHandoversIncoming] = useState<HandoverRequest[]>([]);
     const [handoversOutgoing, setHandoversOutgoing] = useState<HandoverRequest[]>([]);
     const [handoversAdmin, setHandoversAdmin] = useState<HandoverRequest[]>([]);
+    const [weekOverrides, setWeekOverrides] = useState<WeekShiftOverride[]>([]);
 
     // Load users, assignments, week configs, and shift types from backend on mount
     useEffect(() => {
@@ -85,6 +86,56 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
             }
         })();
     }, []);
+
+    // Load week overrides for current year
+    useEffect(() => {
+        (async () => {
+            try {
+                const year = new Date().getFullYear();
+                const overrides = await weekOverridesApi.listWeekOverrides(year);
+                setWeekOverrides(overrides);
+            } catch (e) {
+                console.error('[useSchedule] Failed to load week overrides', e);
+            }
+        })();
+    }, []);
+
+    const getIsoWeek = (d: Date): [number, number] => {
+        const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));
+        const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+        const weekNo = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+        return [date.getUTCFullYear(), weekNo];
+    };
+
+    const getEffectiveShiftLimits = (date: string, shiftTypeId: string) => {
+        const base = shiftTypes.find(st => st.id === shiftTypeId);
+        const baseMin = base?.minUsers ?? 0;
+        const baseMax = base?.maxUsers ?? 0;
+        const [y, w] = getIsoWeek(new Date(date));
+        const ov = weekOverrides.find(o => o.year === y && o.weekNumber === w && o.shiftTypeId === shiftTypeId);
+        const minUsers = ov?.minUsers !== undefined ? ov.minUsers : baseMin;
+        const maxUsers = ov?.maxUsers !== undefined ? ov.maxUsers : baseMax;
+        return { minUsers, maxUsers };
+    };
+
+    const updateWeekOverride = async (input: { year: number; weekNumber: number; shiftTypeId: string; minUsers?: number; maxUsers?: number }) => {
+        try {
+            const saved = await weekOverridesApi.updateWeekOverride(input);
+            setWeekOverrides(prev => {
+                const idx = prev.findIndex(o => o.year === saved.year && o.weekNumber === saved.weekNumber && o.shiftTypeId === saved.shiftTypeId);
+                if (idx >= 0) {
+                    const copy = [...prev];
+                    copy[idx] = saved;
+                    return copy;
+                }
+                return [...prev, saved];
+            });
+        } catch (e) {
+            console.error('[useSchedule] Failed to update week override', e);
+            throw e;
+        }
+    };
 
     // Handovers API wrappers
     const refreshHandovers = async (userId?: string, isAdmin?: boolean) => {
@@ -336,7 +387,9 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
             updateShiftType,
             deleteShiftType,
             addUser,
-            deleteUser
+            deleteUser,
+            getEffectiveShiftLimits,
+            updateWeekOverride
         }}>
             {children}
         </ScheduleContext.Provider>

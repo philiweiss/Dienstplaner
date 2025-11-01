@@ -15,7 +15,7 @@ const getWeekNumber = (d: Date): [number, number] => {
 };
 
 const WeekManagement: React.FC = () => {
-    const { weekConfigs, updateWeekStatus } = useSchedule();
+    const { weekConfigs, updateWeekStatus, shiftTypes, updateWeekOverride } = useSchedule();
 
     const renderWeekConfig = (offset: number) => {
         const date = new Date();
@@ -27,20 +27,57 @@ const WeekManagement: React.FC = () => {
             const newStatus = config.status === WeekStatus.OPEN ? WeekStatus.LOCKED : WeekStatus.OPEN;
             updateWeekStatus(year, weekNumber, newStatus);
         };
+
+        const setOverride = async () => {
+            if (shiftTypes.length === 0) {
+                alert('Keine Schichttypen vorhanden.');
+                return;
+            }
+            const list = shiftTypes.map((s, idx) => `${idx + 1}: ${s.name}`).join('\n');
+            const sel = window.prompt(`Für welche Schicht soll die Wochen-Besetzung angepasst werden?\n${list}\nGib die Nummer ein:`);
+            if (!sel) return;
+            const idx = parseInt(sel, 10) - 1;
+            if (isNaN(idx) || idx < 0 || idx >= shiftTypes.length) {
+                alert('Ungültige Auswahl.');
+                return;
+            }
+            const st = shiftTypes[idx];
+            const minStr = window.prompt(`Min. Besetzung für KW ${weekNumber}/${year} (${st.name}). Leer lassen, um Basiswert zu verwenden.`, '');
+            const maxStr = window.prompt(`Max. Besetzung für KW ${weekNumber}/${year} (${st.name}). Leer lassen, um Basiswert zu verwenden.`, '');
+            const minUsers = minStr !== null && minStr.trim() !== '' ? Math.max(0, parseInt(minStr, 10) || 0) : undefined;
+            const maxUsers = maxStr !== null && maxStr.trim() !== '' ? Math.max(0, parseInt(maxStr, 10) || 0) : undefined;
+            if (minUsers === undefined && maxUsers === undefined) {
+                alert('Mindestens einen Wert (min oder max) angeben.');
+                return;
+            }
+            if (minUsers !== undefined && maxUsers !== undefined && maxUsers < minUsers) {
+                alert('Max darf nicht kleiner als Min sein.');
+                return;
+            }
+            try {
+                await updateWeekOverride({ year, weekNumber, shiftTypeId: st.id, minUsers, maxUsers });
+                alert('Override gespeichert.');
+            } catch (e: any) {
+                alert(`Fehler beim Speichern: ${e?.message || e}`);
+            }
+        };
         
         const isCurrentWeek = offset === 0;
 
         return (
-            <div key={weekNumber} className={`p-4 rounded-lg flex justify-between items-center ${isCurrentWeek ? 'bg-slate-50 border-slate-200 border' : 'bg-white'}`}>
+            <div key={weekNumber} className={`p-4 rounded-lg flex flex-col md:flex-row md:justify-between md:items-center gap-3 ${isCurrentWeek ? 'bg-slate-50 border-slate-200 border' : 'bg-white'}`}>
                 <div>
                     <p className="font-semibold text-gray-800">KW {weekNumber}, {year}</p>
                     <p className={`text-sm font-medium ${config.status === WeekStatus.OPEN ? 'text-green-600' : 'text-amber-600'}`}>
                         Status: {config.status}
                     </p>
                 </div>
-                <button onClick={toggleStatus} className={`p-2 rounded-full transition-colors ${config.status === WeekStatus.OPEN ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}>
-                    {config.status === WeekStatus.OPEN ? <LockClosedIcon className="h-5 w-5" /> : <LockOpenIcon className="h-5 w-5" />}
-                </button>
+                <div className="flex items-center gap-2">
+                    <button onClick={setOverride} className="px-3 py-2 text-sm rounded-md bg-blue-600 text-white hover:bg-blue-700">Wochen-Besetzung anpassen</button>
+                    <button onClick={toggleStatus} className={`p-2 rounded-full transition-colors ${config.status === WeekStatus.OPEN ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}>
+                        {config.status === WeekStatus.OPEN ? <LockClosedIcon className="h-5 w-5" /> : <LockOpenIcon className="h-5 w-5" />}
+                    </button>
+                </div>
             </div>
         );
     };

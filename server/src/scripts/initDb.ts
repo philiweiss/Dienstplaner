@@ -37,6 +37,7 @@ async function run() {
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     role ENUM('User','Admin') NOT NULL,
+    password_hash VARCHAR(255) NULL,
     calendar_token VARCHAR(64) NULL,
     UNIQUE KEY uk_calendar_token (calendar_token)
   );
@@ -100,7 +101,10 @@ async function run() {
 
   await conn.query(sql);
 
-  // Attempt to migrate existing databases: add calendar_token if missing
+  // Attempt to migrate existing databases: add password_hash and calendar_token if missing
+  try {
+    await conn.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NULL");
+  } catch (_) {}
   try {
     await conn.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS calendar_token VARCHAR(64) NULL");
   } catch (_) {}

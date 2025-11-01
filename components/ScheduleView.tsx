@@ -64,7 +64,7 @@ const ScheduleView: React.FC = () => {
     const [calLoading, setCalLoading] = useState(false);
     const [calError, setCalError] = useState<string | null>(null);
     const { user } = useAuth();
-    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover } = useSchedule();
+    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover, getEffectiveShiftLimits } = useSchedule();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [transferModal, setTransferModal] = useState<{ open: boolean; date: string; shiftTypeId: string; toUserId: string } | null>(null);
 
@@ -80,7 +80,8 @@ const ScheduleView: React.FC = () => {
         const diff = firstDay.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
         const monday = new Date(firstDay.setDate(diff));
 
-        return Array.from({ length: 7 }).map((_, i) => {
+        // Only Monday–Friday
+        return Array.from({ length: 5 }).map((_, i) => {
             const date = new Date(monday);
             date.setDate(monday.getDate() + i);
             return date;
@@ -224,7 +225,7 @@ const ScheduleView: React.FC = () => {
             )}
 
             {/* Wochenraster */}
-            <div className="grid grid-cols-1 md:grid-cols-7 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200">
                 {daysOfWeek.map(day => {
                     const dateString = day.toISOString().split('T')[0];
                     return (
@@ -240,8 +241,9 @@ const ScheduleView: React.FC = () => {
                                     const assignment = assignments.find(a => a.date === dateString && a.shiftTypeId === shiftType.id);
                                     const assignedUsers = assignment ? assignment.userIds.map(uid => users.find(u => u.id === uid)).filter((u): u is User => !!u) : [];
                                     
-                                    const isFull = assignedUsers.length >= shiftType.maxUsers;
-                                    const isUnderstaffed = assignedUsers.length < shiftType.minUsers;
+                                    const effective = getEffectiveShiftLimits(dateString, shiftType.id);
+                                    const isFull = assignedUsers.length >= effective.maxUsers;
+                                    const isUnderstaffed = assignedUsers.length < effective.minUsers;
                                     const userIsAssigned = user ? assignedUsers.some(u => u.id === user.id) : false;
                                     const canSelfRegister = !isFull && isWeekOpen && !userIsAssigned;
                                     
@@ -268,9 +270,9 @@ const ScheduleView: React.FC = () => {
                                                 </div>
                                                 <div className="text-right">
                                                      <p className="text-xs font-semibold text-gray-600">
-                                                        {assignedUsers.length} / {shiftType.maxUsers}
+                                                        {assignedUsers.length} / {effective.maxUsers}
                                                     </p>
-                                                    {isUnderstaffed && <ExclamationIcon className="h-5 w-5 text-red-500 mt-1" title={`Mindestbesetzung: ${shiftType.minUsers}`} />}
+                                                    {isUnderstaffed && <ExclamationIcon className="h-5 w-5 text-red-500 mt-1" title={`Mindestbesetzung: ${effective.minUsers}`} />}
                                                 </div>
                                             </div>
                                            
