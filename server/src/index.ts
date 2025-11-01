@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import usersRouter from './routes/users.js';
 import shiftTypesRouter from './routes/shiftTypes.js';
@@ -38,7 +39,21 @@ app.get('*', (req, res) => {
   if (req.path.startsWith('/api')) {
     return res.status(404).json({ error: 'Not found' });
   }
-  res.sendFile(path.join(publicDir, 'index.html'));
+  const indexPath = path.join(publicDir, 'index.html');
+  if (!fs.existsSync(indexPath)) {
+    return res.status(404).json({
+      error: 'Frontend not deployed',
+      message: 'No index.html found in server/public. Build the SPA (vite build) and copy dist/ to server/public/.',
+      steps: [
+        'npm ci',
+        'npm run build  # at project root to create dist/',
+        'mkdir -p server/public',
+        'rsync -a dist/ server/public/',
+        'cd server && npm run build && mkdir -p tmp && touch tmp/restart.txt'
+      ]
+    });
+  }
+  res.sendFile(indexPath);
 });
 
 const PORT = process.env.PORT || 4000;
