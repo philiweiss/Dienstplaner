@@ -7,6 +7,8 @@ export interface User {
     id: string;
     name: string;
     role: Role;
+    birthday?: string | null; // YYYY-MM-DD
+    anniversary?: string | null; // YYYY-MM-DD (Betriebszugehörigkeit)
 }
 
 export interface ShiftType {

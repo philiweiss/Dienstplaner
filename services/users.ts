@@ -15,3 +15,10 @@ export async function createUser(user: { name: string; role: Role | string }): P
 export async function deleteUser(id: string): Promise<void> {
   await jsonFetch<void>(`/api/users/${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
+
+export async function updateUser(id: string, fields: { name?: string; role?: Role | string }): Promise<User> {
+  return jsonFetch<User>(`/api/users/${encodeURIComponent(id)}`, {
+    method: 'PUT',
+    body: JSON.stringify(fields)
+  });
+}

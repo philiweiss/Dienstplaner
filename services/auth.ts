@@ -35,3 +35,10 @@ export async function changePassword(username: string, currentPassword: string, 
     body: JSON.stringify({ username, currentPassword, newPassword })
   });
 }
+
+export async function adminResetPassword(target: { userId?: string; username?: string }, newPassword: string): Promise<{ ok: boolean; user: User }> {
+  return jsonFetch(`/api/auth/admin/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ ...target, newPassword })
+  });
+}

@@ -1,8 +1,9 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Role } from '../types';
 import { CalendarIcon, CogIcon, LogoutIcon } from './icons';
+import { getUserStats, type UserStats } from '../services/stats';
 
 interface HeaderProps {
     currentView: 'schedule' | 'admin' | 'profile';

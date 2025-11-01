@@ -39,6 +39,8 @@ async function run() {
     role ENUM('User','Admin') NOT NULL,
     password_hash VARCHAR(255) NULL,
     calendar_token VARCHAR(64) NULL,
+    birthday DATE NULL,
+    anniversary DATE NULL,
     UNIQUE KEY uk_calendar_token (calendar_token)
   );
 

@@ -141,4 +141,37 @@ router.post('/passkey/register/finish', async (_req, res) => {
   res.json({ ok: true, message: 'WebAuthn-Registrierung bald verfügbar' });
 });
 
+// ADMIN: Reset password for a user (temporary: not protected yet)
+// WARNING: This endpoint must be protected by admin authentication in production.
+router.post('/admin/reset-password', async (req, res) => {
+  const schema = z.object({
+    userId: z.string().uuid().optional(),
+    username: z.string().min(1).optional(),
+    newPassword: z.string().min(8)
+  }).refine(d => !!d.userId || !!d.username, {
+    message: 'userId oder username erforderlich',
+    path: ['userId']
+  });
+  const parse = schema.safeParse(req.body);
+  if (!parse.success) return res.status(400).json({ error: parse.error.format() });
+  const { userId, username, newPassword } = parse.data;
+  try {
+    let user: UserRow | null = null;
+    if (userId) {
+      const [rows] = await pool.query<UserRow[]>('SELECT id, name, role, password_hash FROM users WHERE id=? LIMIT 1', [userId]);
+      user = Array.isArray(rows) && rows.length ? (rows[0] as UserRow) : null;
+    } else if (username) {
+      const [rows] = await pool.query<UserRow[]>('SELECT id, name, role, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
+      user = Array.isArray(rows) && rows.length ? (rows[0] as UserRow) : null;
+    }
+    if (!user) return res.status(404).json({ error: 'Benutzer existiert nicht' });
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE users SET password_hash=? WHERE id=?', [hash, user.id]);
+    return res.json({ ok: true, user: { id: user.id, name: user.name, role: user.role } });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Admin Passwort-Reset fehlgeschlagen' });
+  }
+});
+
 export default router;
