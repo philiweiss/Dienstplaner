@@ -116,9 +116,8 @@ router.post('/change-password', async (req, res) => {
   if (!parse.success) return res.status(400).json({ error: parse.error.format() });
   const { username, currentPassword, newPassword } = parse.data;
   try {
-    const [rows] = await pool.query('SELECT id, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
-    // @ts-ignore
-    const user = Array.isArray(rows) && rows.length ? rows[0] : null;
+    const [rows] = await pool.query<UserPwdRow[]>('SELECT id, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
+    const user: UserPwdRow | null = Array.isArray(rows) && rows.length ? (rows[0] as UserPwdRow) : null;
     if (!user || !user.password_hash) return res.status(400).json({ error: 'Benutzer oder Passwort ungültig' });
     const ok = await bcrypt.compare(currentPassword, user.password_hash);
     if (!ok) return res.status(400).json({ error: 'Benutzer oder Passwort ungültig' });
