@@ -1,6 +1,7 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { User, Role, ShiftType, ShiftAssignment, WeekConfig, WeekStatus } from '../types';
-import { USERS, SHIFT_TYPES, SHIFT_ASSIGNMENTS, WEEK_CONFIGS } from '../constants';
+import { SHIFT_TYPES, SHIFT_ASSIGNMENTS, WEEK_CONFIGS } from '../constants';
+import * as userApi from '../services/users';
 
 interface ScheduleContextType {
     users: User[];
@@ -19,10 +20,23 @@ interface ScheduleContextType {
 const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined);
 
 export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [users, setUsers] = useState<User[]>(USERS);
+    const [users, setUsers] = useState<User[]>([]);
     const [shiftTypes, setShiftTypes] = useState<ShiftType[]>(SHIFT_TYPES);
     const [assignments, setAssignments] = useState<ShiftAssignment[]>(SHIFT_ASSIGNMENTS);
     const [weekConfigs, setWeekConfigs] = useState<WeekConfig[]>(WEEK_CONFIGS);
+
+    // Load users from backend on mount
+    useEffect(() => {
+        (async () => {
+            try {
+                const data = await userApi.listUsers();
+                setUsers(data);
+            } catch (e) {
+                // If backend not reachable, keep empty; UI can still function
+                console.error('[useSchedule] Failed to load users from API', e);
+            }
+        })();
+    }, []);
 
     const assignShift = (date: string, shiftTypeId: string, userId: string) => {
         setAssignments(prev => {
@@ -71,11 +85,19 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     };
 
     const addUser = (user: Omit<User, 'id'>) => {
-        const newUser: User = { ...user, id: `u-${Date.now()}` };
-        setUsers(prev => [...prev, newUser]);
+        // fire-and-forget to backend; update state on success
+        (async () => {
+            try {
+                const created = await userApi.createUser(user);
+                setUsers(prev => [...prev, created]);
+            } catch (e) {
+                console.error('[useSchedule] Failed to create user', e);
+            }
+        })();
     };
 
     const deleteUser = (id: string) => {
+        // optimistically remove, then confirm with backend
         setUsers(prev => prev.filter(u => u.id !== id));
         setAssignments(prev =>
             prev.map(a => ({
@@ -83,6 +105,9 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
                 userIds: a.userIds.filter(uid => uid !== id),
             }))
         );
+        (async () => {
+            try { await userApi.deleteUser(id); } catch (e) { console.error('[useSchedule] Failed to delete user', e); }
+        })();
     };
 
     return (

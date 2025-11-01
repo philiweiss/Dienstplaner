@@ -1,11 +1,10 @@
-
 import React, { createContext, useState, useContext, ReactNode } from 'react';
-import { User, Role } from '../types';
-import { USERS } from '../constants';
+import { User } from '../types';
+import { login as apiLogin } from '../services/auth';
 
 interface AuthContextType {
     user: User | null;
-    login: (username: string) => boolean;
+    login: (username: string) => Promise<boolean>;
     logout: () => void;
 }
 
@@ -14,11 +13,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
 
-    const login = (username: string): boolean => {
-        const foundUser = USERS.find(u => u.name.toLowerCase() === username.toLowerCase());
-        if (foundUser) {
-            setUser(foundUser);
-            return true;
+    const login = async (username: string): Promise<boolean> => {
+        try {
+            const result = await apiLogin(username.trim());
+            if (result && result.user) {
+                setUser(result.user as User);
+                return true;
+            }
+        } catch (_e) {
+            // swallow error; caller can display message
         }
         return false;
     };

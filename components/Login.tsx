@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { UsersIcon } from './icons';
@@ -6,13 +5,20 @@ import { UsersIcon } from './icons';
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const { login } = useAuth();
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        if (!login(username)) {
-            setError('Benutzer nicht gefunden. Versuchen Sie "Alice Admin" oder "Bob Bauer".');
+        setLoading(true);
+        try {
+            const ok = await login(username);
+            if (!ok) {
+                setError('Login fehlgeschlagen. Benutzer existiert nicht oder Serverfehler.');
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -40,6 +46,7 @@ const Login: React.FC = () => {
                                 onChange={(e) => setUsername(e.target.value)}
                                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-slate-500 focus:border-slate-500 focus:z-10 sm:text-sm"
                                 placeholder="Benutzername (z.B. Alice Admin)"
+                                disabled={loading}
                             />
                         </div>
                     </div>
@@ -49,9 +56,10 @@ const Login: React.FC = () => {
                     <div>
                         <button
                             type="submit"
-                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-slate-700 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500"
+                            disabled={loading}
+                            className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${loading ? 'bg-slate-400' : 'bg-slate-700 hover:bg-slate-800'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500`}
                         >
-                            Anmelden
+                            {loading ? 'Anmelden…' : 'Anmelden'}
                         </button>
                     </div>
                 </form>
