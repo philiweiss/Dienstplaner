@@ -32,7 +32,7 @@ interface ScheduleContextType {
     updateShiftType: (id: string, fields: Partial<Omit<ShiftType, 'id'>>) => void;
     deleteShiftType: (id: string) => void;
     addUser: (user: Omit<User, 'id'>) => void;
-    updateUser: (id: string, fields: { name?: string; role?: Role }) => void;
+    updateUser: (id: string, fields: { name?: string; role?: Role; birthday?: string | null; anniversary?: string | null }) => void;
     deleteUser: (id: string) => void;
     getEffectiveShiftLimits: (date: string, shiftTypeId: string) => { minUsers: number; maxUsers: number };
     updateWeekOverride: (input: { year: number; weekNumber: number; shiftTypeId: string; minUsers?: number; maxUsers?: number }) => Promise<void>;
@@ -407,7 +407,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
         })();
     };
 
-    const updateUser = (id: string, fields: { name?: string; role?: Role }) => {
+    const updateUser = (id: string, fields: { name?: string; role?: Role; birthday?: string | null; anniversary?: string | null }) => {
         // optimistic update
         const prevSnapshot = users;
         setUsers(prev => prev.map(u => u.id === id ? { ...u, ...fields } : u));

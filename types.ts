@@ -66,4 +66,5 @@ export interface Absence {
     date: string; // YYYY-MM-DD
     type: AbsenceType;
     note?: string | null;
+    userName?: string; // optional: provided by backend for convenience in admin views
 }

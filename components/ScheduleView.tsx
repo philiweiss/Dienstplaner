@@ -250,7 +250,7 @@ const ScheduleView: React.FC = () => {
                                                 const label = a.type === 'VACATION' ? 'Urlaub' : 'Seminar';
                                                 return (
                                                     <span key={a.id} className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-800 px-2 py-0.5 rounded-full text-xs">
-                                                        <span>{u?.name || a.userId} · {label}</span>
+                                                        <span>{a.userName || u?.name || a.userId} · {label}</span>
                                                         <button
                                                             onClick={() => {
                                                                 if (confirm('Abwesenheit wirklich entfernen?')) {
