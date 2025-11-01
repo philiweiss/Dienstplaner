@@ -54,6 +54,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [handoversAdmin, setHandoversAdmin] = useState<HandoverRequest[]>([]);
     const [weekOverrides, setWeekOverrides] = useState<WeekShiftOverride[]>([]);
     const [absences, setAbsences] = useState<Absence[]>([]);
+    const [dayNotes, setDayNotes] = useState<DayNote[]>([]);
 
     // Load users, assignments, week configs, shift types, and absences from backend on mount
     useEffect(() => {
