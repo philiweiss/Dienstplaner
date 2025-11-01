@@ -1,8 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useSchedule } from '../hooks/useSchedule';
 import { WeekStatus, Role, User, ShiftType } from '../types';
 import { LockClosedIcon, LockOpenIcon, PlusIcon, TrashIcon } from './icons';
+import { useAuth } from '../hooks/useAuth';
 
 // Re-using helper from ScheduleView
 const getWeekNumber = (d: Date): [number, number] => {
@@ -210,7 +211,7 @@ const UserManagement: React.FC = () => {
 };
 
 const AdminPanel: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'weeks' | 'shifts' | 'users'>('weeks');
+    const [activeTab, setActiveTab] = useState<'weeks' | 'shifts' | 'users' | 'handovers'>('weeks');
     
     const TabButton: React.FC<{ tabId: 'weeks' | 'shifts' | 'users', children: React.ReactNode}> = ({tabId, children}) => {
         const isActive = activeTab === tabId;

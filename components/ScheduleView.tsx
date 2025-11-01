@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSchedule } from '../hooks/useSchedule';
 import { Role, WeekStatus, User } from '../types';
-import { generateICS } from '../services/calendarService';
+import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
 import { ChevronLeftIcon, ChevronRightIcon, LockClosedIcon, PlusIcon, TrashIcon, ExclamationIcon } from './icons';
 
 // Helper to get week number
@@ -255,7 +255,50 @@ const ScheduleView: React.FC = () => {
                     );
                 })}
             </div>
-        </div>
+        {/* Übergabe-Modal */}
+        {transferModal?.open && user && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4">
+                    <h3 className="text-lg font-semibold mb-3">Schicht an anderen Nutzer übergeben</h3>
+                    <p className="text-sm text-gray-600 mb-3">Wähle den Empfänger aus. Dieser muss die Anfrage annehmen; anschließend muss ein Admin bestätigen.</p>
+                    <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700">Empfänger</label>
+                        <select
+                            value={transferModal.toUserId}
+                            onChange={(e) => setTransferModal({ ...transferModal, toUserId: e.target.value })}
+                            className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2 bg-gray-50"
+                        >
+                            <option value="">Benutzer wählen...</option>
+                            {users
+                              .filter(u => u.id !== user.id)
+                              .map(u => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                              ))}
+                        </select>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-4">
+                        <button onClick={() => setTransferModal(null)} className="px-3 py-1.5 rounded bg-gray-200 hover:bg-gray-300">Abbrechen</button>
+                        <button
+                            onClick={async () => {
+                                if (!transferModal.toUserId) return;
+                                try {
+                                    await requestHandover(transferModal.date, transferModal.shiftTypeId, user.id, transferModal.toUserId);
+                                    alert('Übergabe-Anfrage wurde gesendet.');
+                                    setTransferModal(null);
+                                } catch (e: any) {
+                                    alert(e?.message || 'Anfrage fehlgeschlagen');
+                                }
+                            }}
+                            disabled={!transferModal.toUserId}
+                            className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800 disabled:bg-gray-300"
+                        >
+                            Anfrage senden
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )}
+    </div>
     );
 };
 
