@@ -71,45 +71,126 @@ const AdminAssignControl: React.FC<{
 }> = ({ date, shiftTypeId, assignedUsers }) => {
     const { users, assignShift, isUserAbsent } = useSchedule();
     const { user } = useAuth();
-    const [selectedUserId, setSelectedUserId] = useState('');
+
+    const [query, setQuery] = useState('');
+    const [isOpen, setIsOpen] = useState(false);
+    const [highlighted, setHighlighted] = useState(0);
+    const wrapRef = React.useRef<HTMLDivElement | null>(null);
 
     const availableUsers = useMemo(() => {
         const assignedIds = new Set(assignedUsers.map(u => u.id));
         return users.filter(u => !assignedIds.has(u.id) && !isUserAbsent(date, u.id));
     }, [users, assignedUsers, date, isUserAbsent]);
 
-    const handleAssign = () => {
-        if (selectedUserId) {
-            const isAdmin = user?.role === Role.ADMIN;
-            assignShift(
-                date,
-                shiftTypeId,
-                selectedUserId,
-                isAdmin ? { allowOverbook: true, adminId: user!.id } : undefined
-            );
-            setSelectedUserId('');
+    const filtered = useMemo(() => {
+        const q = query.trim().toLowerCase();
+        if (!q) return availableUsers;
+        return availableUsers.filter(u => (u.name || '').toLowerCase().includes(q));
+    }, [availableUsers, query]);
+
+    useEffect(() => {
+        const onClick = (e: MouseEvent) => {
+            if (!wrapRef.current) return;
+            if (!wrapRef.current.contains(e.target as Node)) setIsOpen(false);
+        };
+        document.addEventListener('mousedown', onClick);
+        return () => document.removeEventListener('mousedown', onClick);
+    }, []);
+
+    const doAssign = (userId: string) => {
+        if (!userId) return;
+        const isAdmin = user?.role === Role.ADMIN;
+        assignShift(
+            date,
+            shiftTypeId,
+            userId,
+            isAdmin ? { allowOverbook: true, adminId: user!.id } : undefined
+        );
+        setQuery('');
+        setIsOpen(false);
+        setHighlighted(0);
+    };
+
+    const onKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+        if (!isOpen && (e.key === 'ArrowDown' || e.key === 'Enter')) {
+            setIsOpen(true);
+            return;
+        }
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setHighlighted((i) => Math.min(i + 1, Math.max(0, filtered.length - 1)));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setHighlighted((i) => Math.max(i - 1, 0));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            const choice = filtered[highlighted];
+            if (choice) doAssign(choice.id);
+        } else if (e.key === 'Escape') {
+            setIsOpen(false);
         }
     };
 
     return (
-        <div className="flex items-center space-x-2 mt-2">
-            <select
-                value={selectedUserId}
-                onChange={(e) => setSelectedUserId(e.target.value)}
-                className="block w-full text-sm rounded-md border border-gray-300 dark:border-slate-600 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 p-2 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 transition-colors"
-            >
-                <option value="">Benutzer wählen...</option>
-                {availableUsers.map(u => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                ))}
-            </select>
-            <button
-                onClick={handleAssign}
-                disabled={!selectedUserId}
-                className="p-2 bg-slate-700 text-white rounded-md hover:bg-slate-800 disabled:bg-gray-300"
-            >
-                <PlusIcon className="h-5 w-5" />
-            </button>
+        <div ref={wrapRef} className="relative mt-2">
+            <div className="flex items-center gap-2">
+                <div className="flex-1">
+                    <div className="flex items-center gap-2 rounded-md border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-2 py-1.5 shadow-sm focus-within:ring-2 focus-within:ring-slate-500">
+                        <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                            <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                        </svg>
+                        <input
+                            value={query}
+                            onChange={(e) => { setQuery(e.target.value); setIsOpen(true); setHighlighted(0); }}
+                            onFocus={() => setIsOpen(true)}
+                            onKeyDown={onKeyDown}
+                            className="w-full bg-transparent outline-none text-sm text-gray-900 dark:text-gray-100 placeholder-gray-400"
+                            placeholder="Person suchen und zuweisen…"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setIsOpen((o) => !o)}
+                            className="rounded p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                            aria-label="Aufklappen"
+                        >
+                            <svg className="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                                                            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
+                                                        </svg>
+                        </button>
+                    </div>
+                </div>
+                {/* Fallback add button for mouse users when an option is highlighted */}
+                <button
+                    onClick={() => { const choice = filtered[highlighted]; if (choice) doAssign(choice.id); }}
+                    disabled={filtered.length === 0}
+                    className="p-2 bg-slate-700 text-white rounded-md hover:bg-slate-800 disabled:bg-gray-300"
+                    title="Ausgewählten Benutzer zuweisen"
+                >
+                    <PlusIcon className="h-5 w-5" />
+                </button>
+            </div>
+
+            {isOpen && (
+                <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg overflow-hidden">
+                    {filtered.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-gray-500">Keine Treffer</div>
+                    ) : (
+                        <ul className="max-h-56 overflow-auto py-1">
+                            {filtered.map((u, idx) => (
+                                <li
+                                    key={u.id}
+                                    onMouseEnter={() => setHighlighted(idx)}
+                                    onMouseDown={(e) => { e.preventDefault(); doAssign(u.id); }}
+                                    className={`${idx === highlighted ? 'bg-slate-100 dark:bg-slate-700' : ''} cursor-pointer px-3 py-2 flex items-center gap-2`}
+                                >
+                                    <Avatar user={u} size={20} />
+                                    <span className="text-sm text-gray-900 dark:text-gray-100">{u.name}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
         </div>
     );
 };
@@ -117,6 +198,8 @@ const AdminAssignControl: React.FC<{
 
 const ScheduleView: React.FC = () => {
     const [showShiftManager, setShowShiftManager] = useState(false);
+    const [newShift, setNewShift] = useState({ name: '', startTime: '08:00', endTime: '16:00', color: 'bg-gray-200 text-gray-800', minUsers: 1, maxUsers: 1 });
+    const [shiftError, setShiftError] = useState<string>('');
     const [calendarUrl, setCalendarUrl] = useState<string | null>(null);
     const [calLoading, setCalLoading] = useState(false);
     const [calError, setCalError] = useState<string | null>(null);
@@ -342,6 +425,30 @@ const ScheduleView: React.FC = () => {
                     <p className="text-xs text-green-800 mt-2">
                         Tipp: Als Internet-/URL-Kalender in Outlook/Apple/Google abonnieren. Bei "Neu generieren" wird der alte Link ungültig.
                     </p>
+                </div>
+            )}
+
+            {isAdmin && handoversAdmin && handoversAdmin.length > 0 && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <p className="font-semibold text-blue-800 mb-2">Übergaben warten auf Bestätigung ({handoversAdmin.length})</p>
+                    <div className="space-y-2">
+                        {handoversAdmin.map(h => {
+                            const st = shiftTypes.find(s => s.id === h.shiftTypeId);
+                            const fromUser = users.find(u => u.id === h.fromUserId);
+                            const toUser = users.find(u => u.id === h.toUserId);
+                            return (
+                                <div key={h.id} className="flex items-center justify-between text-sm">
+                                    <span>
+                                        {fromUser?.name} → {toUser?.name} • {st?.name} am {new Date(h.date).toLocaleDateString('de-DE')}
+                                    </span>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => user && declineHandover(h.id, user.id)} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">Ablehnen</button>
+                                        <button onClick={() => user && approveHandover(h.id, user.id)} className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">Freigeben</button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 
