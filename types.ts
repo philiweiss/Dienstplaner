@@ -58,13 +58,15 @@ export interface HandoverRequest {
     status: HandoverStatus;
 }
 
-export type AbsenceType = 'VACATION' | 'SEMINAR';
+export type AbsenceType = 'VACATION' | 'SEMINAR' | 'SICK';
+export type AbsencePart = 'FULL' | 'AM' | 'PM';
 
 export interface Absence {
     id: string;
     userId: string;
     date: string; // YYYY-MM-DD
     type: AbsenceType;
+    part?: AbsencePart; // FULL (default) | AM | PM
     note?: string | null;
     userName?: string; // optional: provided by backend for convenience in admin views
 }

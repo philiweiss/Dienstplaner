@@ -47,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center">
                         <div className="flex-shrink-0">
-                           <h1 className="text-xl font-bold text-slate-900 dark:text-white">IT-Dienstplaner Pro</h1>
+                           <h1 className="text-xl font-bold text-slate-900 dark:text-white">IT-Dienstplaner</h1>
                         </div>
                         <nav className="hidden md:block ml-10">
                             <div className="flex items-baseline space-x-4">

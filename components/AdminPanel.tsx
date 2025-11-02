@@ -143,13 +143,13 @@ const ShiftManagement: React.FC = () => {
     
     return (
         <div>
-             <form onSubmit={handleAddShift} className="p-4 bg-gray-50 rounded-lg mb-6 grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+             <form onSubmit={handleAddShift} className="p-4 bg-gray-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg mb-6 grid grid-cols-1 md:grid-cols-6 gap-4 items-end transition-colors">
                 <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">Name der Schicht</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name der Schicht</label>
                     <input type="text" value={newShift.name} onChange={e => setNewShift({...newShift, name: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm p-2" required />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Start</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Start</label>
                     <input type="time" value={newShift.startTime} onChange={e => setNewShift({...newShift, startTime: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm p-2" required />
                 </div>
                 <div>

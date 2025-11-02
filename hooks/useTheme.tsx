@@ -40,6 +40,22 @@ export const ThemeProvider: React.FC<{ userId?: string | number, children: React
 
   const [theme, setThemeState] = useState<ThemeMode>(readInitial);
 
+  // When the userId/storageKey changes (e.g., before vs after login), load that user's stored theme
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(storageKey) as ThemeMode | null;
+      if (stored === 'light' || stored === 'dark') {
+        setThemeState(stored);
+        applyThemeClass(stored);
+        return;
+      }
+    } catch (_e) {}
+    // fallback to system pref
+    const fallback = getSystemPrefersDark() ? 'dark' : 'light';
+    setThemeState(fallback);
+    applyThemeClass(fallback);
+  }, [storageKey]);
+
   useEffect(() => {
     applyThemeClass(theme);
     try {

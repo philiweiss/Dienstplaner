@@ -337,54 +337,43 @@ const ScheduleView: React.FC = () => {
                                 );
                             })()}
 
-                            {/* Abwesenheit (Urlaub/Seminar) für aktuellen Nutzer */}
+                            {/* Abwesenheit (Urlaub/Seminar) für aktuellen Nutzer – immer möglich, auch in gesperrter Woche */}
                             {user && (
                                 <div className="mb-3 flex items-center justify-center gap-2">
-                                    {isWeekOpen ? (
-                                        (() => {
-                                            const myAbs = isUserAbsent(dateString, user.id);
-                                            if (myAbs) {
-                                                const label = myAbs.type === 'VACATION' ? 'Urlaub' : 'Seminar';
-                                                return (
-                                                    <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">
-                                                        <span>{label}</span>
-                                                        <button
-                                                            onClick={() => removeAbsence(myAbs.id)}
-                                                            className="text-blue-700 hover:text-blue-900"
-                                                            title="Abwesenheit entfernen"
-                                                        >
-                                                            ×
-                                                        </button>
-                                                    </div>
-                                                );
-                                            }
+                                    {(() => {
+                                        const myAbs = isUserAbsent(dateString, user.id);
+                                        if (myAbs) {
+                                            const label = myAbs.type === 'VACATION' ? 'Urlaub' : 'Seminar';
                                             return (
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">
+                                                    <span>{label}</span>
                                                     <button
-                                                        onClick={() => addAbsence(user.id, dateString, 'VACATION')}
-                                                        className="px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700"
+                                                        onClick={() => removeAbsence(myAbs.id)}
+                                                        className="text-blue-700 hover:text-blue-900"
+                                                        title="Abwesenheit entfernen"
                                                     >
-                                                        Urlaub
-                                                    </button>
-                                                    <button
-                                                        onClick={() => addAbsence(user.id, dateString, 'SEMINAR')}
-                                                        className="px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700"
-                                                    >
-                                                        Seminar
+                                                        ×
                                                     </button>
                                                 </div>
                                             );
-                                        })()
-                                    ) : (
-                                        (() => {
-                                            const myAbs = isUserAbsent(dateString, user.id);
-                                            return myAbs ? (
-                                                <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">
-                                                    <span>{myAbs.type === 'VACATION' ? 'Urlaub' : 'Seminar'}</span>
-                                                </div>
-                                            ) : null;
-                                        })()
-                                    )}
+                                        }
+                                        return (
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={() => addAbsence(user.id, dateString, 'VACATION')}
+                                                    className="px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700"
+                                                >
+                                                    Urlaub
+                                                </button>
+                                                <button
+                                                    onClick={() => addAbsence(user.id, dateString, 'SEMINAR')}
+                                                    className="px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700"
+                                                >
+                                                    Seminar
+                                                </button>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             )}
 

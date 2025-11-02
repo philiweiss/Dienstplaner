@@ -98,13 +98,13 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      <section className="bg-white p-6 rounded-lg shadow">
+    <div className="max-w-2xl mx-auto space-y-8 text-gray-800 dark:text-gray-100">
+      <section className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-lg shadow transition-colors">
         <h2 className="text-xl font-semibold mb-4">Profil</h2>
         <p className="text-sm text-gray-600">Angemeldet als <span className="font-medium">{user.name}</span> ({user.role})</p>
       </section>
 
-      <section className="bg-white p-6 rounded-lg shadow">
+      <section className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-lg shadow transition-colors">
         <h3 className="text-lg font-semibold mb-4">Meine Statistik</h3>
         {statsLoading ? (
           <p className="text-sm text-gray-500">Lade Statistiken…</p>

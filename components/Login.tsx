@@ -71,13 +71,13 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full space-y-8">
                 <div>
-                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-                        IT-Dienstplaner Pro
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-gray-100">
+                        IT-Dienstplaner
                     </h2>
-                    <p className="mt-2 text-center text-sm text-gray-600">
+                    <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">
                         {step === 'username' && 'Melden Sie sich an, um fortzufahren'}
                         {step === 'password' && 'Bitte Passwort eingeben'}
                         {step === 'setPassword' && 'Erster Login: Bitte Passwort festlegen'}
@@ -96,7 +96,7 @@ const Login: React.FC = () => {
                                     required
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-slate-500 focus:border-slate-500 focus:z-10 sm:text-sm"
+                                    className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 placeholder-gray-500 dark:placeholder-slate-400 text-gray-900 dark:text-gray-100 rounded-t-md bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 focus:z-10 sm:text-sm transition-colors"
                                     placeholder="Benutzername (z.B. Alice Admin)"
                                     disabled={loading}
                                 />
@@ -132,7 +132,7 @@ const Login: React.FC = () => {
                                     return (first + last).toLocaleUpperCase('de-DE');
                                 })()}
                             </div>
-                            <div className="text-sm text-gray-600 font-medium">
+                            <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">
                                 {username}
                             </div>
                         </div>
@@ -147,7 +147,7 @@ const Login: React.FC = () => {
                                         required
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
-                                        className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-slate-500 focus:border-slate-500 focus:z-10 sm:text-sm"
+                                        className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 placeholder-gray-500 dark:placeholder-slate-400 text-gray-900 dark:text-gray-100 rounded-t-md bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 focus:z-10 sm:text-sm transition-colors"
                                         placeholder="Passwort"
                                         disabled={loading}
                                     />
@@ -174,7 +174,7 @@ const Login: React.FC = () => {
                     <form className="mt-8 space-y-6" onSubmit={handleSetPassword}>
                         <div className="space-y-4">
                             <div>
-                                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700">Neues Passwort</label>
+                                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Neues Passwort</label>
                                 <input
                                     id="new-password"
                                     name="new-password"
@@ -188,7 +188,7 @@ const Login: React.FC = () => {
                                 />
                             </div>
                             <div>
-                                <label htmlFor="new-password2" className="block text-sm font-medium text-gray-700">Passwort wiederholen</label>
+                                <label htmlFor="new-password2" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Passwort wiederholen</label>
                                 <input
                                     id="new-password2"
                                     name="new-password2"

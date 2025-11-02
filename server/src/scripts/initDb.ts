@@ -104,7 +104,8 @@ async function run() {
     id VARCHAR(36) PRIMARY KEY,
     user_id VARCHAR(36) NOT NULL,
     date DATE NOT NULL,
-    type ENUM('VACATION','SEMINAR') NOT NULL,
+    type ENUM('VACATION','SEMINAR','SICK') NOT NULL,
+    part ENUM('FULL','AM','PM') NOT NULL DEFAULT 'FULL',
     note VARCHAR(500) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_abs_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -153,6 +154,10 @@ async function run() {
   try { await conn.query("ALTER TABLE day_notes ADD COLUMN IF NOT EXISTS created_by VARCHAR(36) NULL"); } catch (_) {}
   try { await conn.query("ALTER TABLE day_notes ADD COLUMN IF NOT EXISTS approved_by VARCHAR(36) NULL"); } catch (_) {}
   try { await conn.query("ALTER TABLE day_notes ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"); } catch (_) {}
+
+  // Best-effort migrations for absences: add SICK to enum and part column
+  try { await conn.query("ALTER TABLE absences MODIFY COLUMN type ENUM('VACATION','SEMINAR','SICK') NOT NULL"); } catch (_) {}
+  try { await conn.query("ALTER TABLE absences ADD COLUMN IF NOT EXISTS part ENUM('FULL','AM','PM') NOT NULL DEFAULT 'FULL'"); } catch (_) {}
 
   await conn.end();
   console.log('Database initialized.');

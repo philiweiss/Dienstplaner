@@ -3,6 +3,7 @@ import { pool } from '../db.js';
 import { z } from 'zod';
 import type { RowDataPacket } from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
+import { signToken } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -79,7 +80,8 @@ router.post('/login-password', async (req, res) => {
     if (!user || !user.password_hash) return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
-    return res.json({ user: { id: user.id, name: user.name, role: user.role } });
+    const token = signToken({ id: user.id, name: user.name, role: user.role });
+    return res.json({ user: { id: user.id, name: user.name, role: user.role }, token });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Login fehlgeschlagen' });
@@ -98,7 +100,8 @@ router.post('/set-password', async (req, res) => {
     if (user.password_hash) return res.status(400).json({ error: 'Passwort bereits gesetzt' });
     const hash = await bcrypt.hash(password, 10);
     await pool.query('UPDATE users SET password_hash=? WHERE id=?', [hash, user.id]);
-    return res.json({ user: { id: user.id, name: user.name, role: user.role } });
+    const token = signToken({ id: user.id, name: user.name, role: user.role });
+    return res.json({ user: { id: user.id, name: user.name, role: user.role }, token });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Passwort setzen fehlgeschlagen' });

@@ -15,22 +15,24 @@ const AppContent: React.FC = () => {
     const { user } = useAuth();
     const [view, setView] = useState<View>('schedule');
 
-    if (!user) {
-        return <Login />;
-    }
-
     return (
-        <ThemeProvider userId={user.id}>
-            <ScheduleProvider>
-                <div className="min-h-screen bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
-                    <Header currentView={view} setView={setView} />
-                    <main className="p-4 sm:p-6 lg:p-8">
-                        {view === 'schedule' && <ScheduleView />}
-                        {view === 'admin' && <AdminPanel />}
-                        {view === 'profile' && <Profile />}
-                    </main>
+        <ThemeProvider userId={user?.id}>
+            {!user ? (
+                <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
+                    <Login />
                 </div>
-            </ScheduleProvider>
+            ) : (
+                <ScheduleProvider>
+                    <div className="min-h-screen bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
+                        <Header currentView={view} setView={setView} />
+                        <main className="p-4 sm:p-6 lg:p-8">
+                            {view === 'schedule' && <ScheduleView />}
+                            {view === 'admin' && <AdminPanel />}
+                            {view === 'profile' && <Profile />}
+                        </main>
+                    </div>
+                </ScheduleProvider>
+            )}
         </ThemeProvider>
     );
 };
