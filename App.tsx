@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ScheduleProvider } from './hooks/useSchedule';
 import { ThemeProvider } from './hooks/useTheme';
+import { ToastProvider } from './hooks/useToast';
+import ToastContainer from './components/ToastContainer';
 import Login from './components/Login';
 import Header from './components/Header';
 import ScheduleView from './components/ScheduleView';
@@ -17,22 +19,25 @@ const AppContent: React.FC = () => {
 
     return (
         <ThemeProvider userId={user?.id}>
-            {!user ? (
-                <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
-                    <Login />
-                </div>
-            ) : (
-                <ScheduleProvider>
-                    <div className="min-h-screen bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
-                        <Header currentView={view} setView={setView} />
-                        <main className="p-4 sm:p-6 lg:p-8">
-                            {view === 'schedule' && <ScheduleView />}
-                            {view === 'admin' && <AdminPanel />}
-                            {view === 'profile' && <Profile />}
-                        </main>
+            <ToastProvider>
+                {!user ? (
+                    <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
+                        <Login />
                     </div>
-                </ScheduleProvider>
-            )}
+                ) : (
+                    <ScheduleProvider>
+                        <div className="min-h-screen bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
+                            <Header currentView={view} setView={setView} />
+                            <main className="p-4 sm:p-6 lg:p-8">
+                                {view === 'schedule' && <ScheduleView />}
+                                {view === 'admin' && <AdminPanel />}
+                                {view === 'profile' && <Profile />}
+                            </main>
+                        </div>
+                    </ScheduleProvider>
+                )}
+                <ToastContainer />
+            </ToastProvider>
         </ThemeProvider>
     );
 };

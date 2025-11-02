@@ -2,9 +2,44 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSchedule } from '../hooks/useSchedule';
+import { useToast } from '../hooks/useToast';
 import { Role, WeekStatus, User, AbsenceType, AbsencePart } from '../types';
 import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
 import { ChevronLeftIcon, ChevronRightIcon, LockClosedIcon, PlusIcon, TrashIcon, ExclamationIcon } from './icons';
+
+// Lightweight Avatar component (no backend changes). Uses DiceBear by name as seed with initials fallback.
+const stringToColor = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    const c = (hash & 0x00ffffff).toString(16).toUpperCase();
+    return '#' + '00000'.substring(0, 6 - c.length) + c;
+};
+const getInitials = (name: string) => name.split(/\s+/).map(s => s[0]).slice(0, 2).join('').toUpperCase();
+
+const Avatar: React.FC<{ user: User; size?: number; className?: string }> = ({ user, size = 24, className = '' }) => {
+    const [error, setError] = useState(false);
+    const bg = stringToColor(user.name || user.id);
+    const initials = getInitials(user.name || 'U');
+    const url = `https://api.dicebear.com/7.x/thumbs/svg?seed=${encodeURIComponent(user.name || user.id)}&radius=50&backgroundType=gradientLinear`;
+    return (
+        <div className={`rounded-full overflow-hidden flex items-center justify-center shrink-0 ring-1 ring-black/5 ${className}`} style={{ width: size, height: size, background: bg }}>
+            {!error ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                    src={url}
+                    alt={user.name}
+                    width={size}
+                    height={size}
+                    onError={() => setError(true)}
+                />
+            ) : (
+                <span className="text-white text-[10px] font-semibold" aria-hidden>
+                    {initials}
+                </span>
+            )}
+        </div>
+    );
+};
 
 // Helper to get week number
 const getWeekNumber = (d: Date): [number, number] => {
@@ -71,7 +106,8 @@ const ScheduleView: React.FC = () => {
     const [calLoading, setCalLoading] = useState(false);
     const [calError, setCalError] = useState<string | null>(null);
     const { user } = useAuth();
-    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, addAbsenceRange, removeAbsence, dayNotes, setDayNote, removeDayNote } = useSchedule();
+    const toast = useToast();
+    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, addAbsenceRange, removeAbsence, dayNotes, setDayNote, removeDayNote, updateWeekStatus } = useSchedule();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [transferModal, setTransferModal] = useState<{ open: boolean; date: string; shiftTypeId: string; toUserId: string } | null>(null);
     const [noteEditor, setNoteEditor] = useState<{ date: string; text: string; adminOnly: boolean } | null>(null);
@@ -151,9 +187,10 @@ const ScheduleView: React.FC = () => {
         if (!calendarUrl) return;
         try {
             await navigator.clipboard.writeText(calendarUrl);
-            // simple feedback via alert to keep minimal
-            alert('URL kopiert');
-        } catch (_) {}
+            toast.success('URL kopiert');
+        } catch (_e) {
+            toast.error('Kopieren fehlgeschlagen');
+        }
     };
     
     return (
@@ -172,7 +209,7 @@ const ScheduleView: React.FC = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                      {!isWeekOpen && (
-                        <div className="flex items-center text-sm font-semibold text-amber-700 bg-amber-100 px-3 py-1.5 rounded-full">
+                        <div className="flex items-center text-sm font-semibold text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 px-3 py-1.5 rounded-full">
                             <LockClosedIcon className="h-4 w-4 mr-2" />
                             Woche gesperrt
                         </div>
@@ -183,6 +220,33 @@ const ScheduleView: React.FC = () => {
                     >
                         Exportieren
                     </button>
+                    {isAdmin && (
+                        <div className="hidden sm:flex items-center space-x-2 ml-2">
+                            <button
+                                onClick={() => {
+                                    // Prefill current week Mon-Fri
+                                    const start = daysOfWeek[0].toISOString().slice(0,10);
+                                    const end = daysOfWeek[daysOfWeek.length - 1].toISOString().slice(0,10);
+                                    setAbsenceModal({ open: true, userId: '', type: 'SICK', start, end, part: 'FULL', note: '' });
+                                }}
+                                className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 dark:hover:bg-slate-700"
+                                title="Abwesenheit für Woche eintragen"
+                            >
+                                + Abwesenheit (Woche)
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const next = isWeekOpen ? WeekStatus.LOCKED : WeekStatus.OPEN;
+                                    updateWeekStatus(year, weekNumber, next);
+                                    toast.success(`Woche ${isWeekOpen ? 'gesperrt' : 'geöffnet'}`);
+                                }}
+                                className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 dark:hover:bg-slate-700"
+                                title="Woche sperren/öffnen"
+                            >
+                                {isWeekOpen ? 'Woche sperren' : 'Woche öffnen'}
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -532,23 +596,24 @@ const ScheduleView: React.FC = () => {
                                                 </div>
                                             )}
                                            
-                                            <div className="space-y-1.5 mt-2">
+                                            <div className="space-y-2 mt-3">
                                                 {assignedUsers.map(assignedUser => {
                                                     const md = dateString.slice(5); // MM-DD
                                                     const hasBirthday = assignedUser.birthday ? assignedUser.birthday.slice(5) === md : false;
                                                     const hasAnniversary = assignedUser.anniversary ? assignedUser.anniversary.slice(5) === md : false;
                                                     const isSick = sickAssigned.some(u => u.id === assignedUser.id);
                                                     return (
-                                                    <div key={assignedUser.id} className={`flex items-center justify-between p-1.5 rounded text-sm font-medium ${isSick ? 'bg-red-100 text-red-800 border border-red-200' : (user?.id === assignedUser.id ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800')}`}>
-                                                        <span className="flex items-center gap-1">
-                                                            {assignedUser.name}
+                                                    <div key={assignedUser.id} className={`flex items-center justify-between p-2 rounded-lg text-sm font-medium shadow-sm ${isSick ? 'bg-red-100 text-red-800 border border-red-200' : (user?.id === assignedUser.id ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800')}`}>
+                                                        <span className="flex items-center gap-2">
+                                                            <Avatar user={assignedUser} size={22} />
+                                                            <span>{assignedUser.name}</span>
                                                             {isSick && <span className="px-1 py-0.5 text-[10px] rounded bg-red-200 text-red-900">Krank</span>}
                                                             {hasBirthday && <span title="Geburtstag" className="ml-1">🎂</span>}
                                                             {hasAnniversary && <span title="Jubiläum" className="ml-0.5">🎉</span>}
                                                         </span>
-                                                        <div className="flex items-center gap-1 flex-wrap justify-end">
+                                                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
                                                             {isSick && isAdmin && candidateUsers.length > 0 && (
-                                                                <div className="flex items-center gap-1 mr-1">
+                                                                <div className="flex items-center gap-1.5 mr-1">
                                                                     <span className="text-[11px] text-gray-600">Ersatz:</span>
                                                                     {candidateUsers.slice(0,3).map(c => (
                                                                         <button
@@ -560,13 +625,14 @@ const ScheduleView: React.FC = () => {
                                                                                     await unassignShift(dateString, shiftType.id, assignedUser.id);
                                                                                     assignShift(dateString, shiftType.id, c.id, { allowOverbook: true, adminId: user?.id });
                                                                                 } catch (e: any) {
-                                                                                    alert(e?.message || 'Ersetzen fehlgeschlagen');
+                                                                                    toast.error(e?.message || 'Ersetzen fehlgeschlagen');
                                                                                 }
                                                                             }}
-                                                                            className="px-2 py-0.5 rounded bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-[11px]"
+                                                                            className="pl-1.5 pr-2 py-0.5 rounded bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-[11px] flex items-center gap-1.5"
                                                                             title={`Ersetzen durch ${c.name}`}
                                                                         >
-                                                                            {c.name}
+                                                                            <Avatar user={c} size={14} />
+                                                                            <span>{c.name}</span>
                                                                         </button>
                                                                     ))}
                                                                 </div>
@@ -636,10 +702,10 @@ const ScheduleView: React.FC = () => {
                                 if (!transferModal.toUserId) return;
                                 try {
                                     await requestHandover(transferModal.date, transferModal.shiftTypeId, user.id, transferModal.toUserId);
-                                    alert('Übergabe-Anfrage wurde gesendet.');
+                                    toast.success('Übergabe-Anfrage wurde gesendet.');
                                     setTransferModal(null);
                                 } catch (e: any) {
-                                    alert(e?.message || 'Anfrage fehlgeschlagen');
+                                    toast.error(e?.message || 'Anfrage fehlgeschlagen');
                                 }
                             }}
                             disabled={!transferModal.toUserId}
@@ -655,11 +721,11 @@ const ScheduleView: React.FC = () => {
         {/* Admin: Abwesenheit eintragen Modal */}
         {isAdmin && absenceModal?.open && (
             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-4">
+                <div className="bg-white dark:bg-slate-800 dark:text-gray-100 rounded-lg shadow-xl w-full max-w-lg p-4 border border-gray-200 dark:border-slate-700">
                     <h3 className="text-lg font-semibold mb-3">Abwesenheit eintragen</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Benutzer</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Benutzer</label>
                             <select
                                 value={absenceModal.userId}
                                 onChange={(e) => setAbsenceModal(m => m ? { ...m, userId: e.target.value } : m)}
@@ -672,7 +738,7 @@ const ScheduleView: React.FC = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Typ</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Typ</label>
                             <select
                                 value={absenceModal.type}
                                 onChange={(e) => setAbsenceModal(m => m ? { ...m, type: e.target.value as AbsenceType } : m)}
@@ -737,16 +803,16 @@ const ScheduleView: React.FC = () => {
                         <div className="flex gap-2">
                             <button
                                 onClick={async () => {
-                                    if (!absenceModal?.userId || !absenceModal.start || !absenceModal.end) { alert('Bitte Benutzer, Start und Ende wählen.'); return; }
+                                    if (!absenceModal?.userId || !absenceModal.start || !absenceModal.end) { toast.warn('Bitte Benutzer, Start und Ende wählen.'); return; }
                                     const s = new Date(absenceModal.start + 'T00:00:00Z');
                                     const e = new Date(absenceModal.end + 'T00:00:00Z');
-                                    if (e < s) { alert('Ende darf nicht vor Start liegen.'); return; }
+                                    if (e < s) { toast.warn('Ende darf nicht vor Start liegen.'); return; }
                                     try {
                                         setAbsenceModal(m => m ? { ...m, submitting: true, result: null } : m);
                                         const res = await addAbsenceRange(absenceModal.userId, absenceModal.start, absenceModal.end, absenceModal.type, absenceModal.note || null, absenceModal.part);
                                         setAbsenceModal(m => m ? { ...m, submitting: false, result: { created: res.created.map(c => ({ date: c.date })), skipped: res.skipped } } : m);
                                     } catch (e: any) {
-                                        alert(e?.message || 'Fehler beim Anlegen der Abwesenheit');
+                                        toast.error(e?.message || 'Fehler beim Anlegen der Abwesenheit');
                                         setAbsenceModal(m => m ? { ...m, submitting: false } : m);
                                     }
                                 }}
@@ -792,7 +858,7 @@ const ScheduleView: React.FC = () => {
                                     }
                                     setNoteEditor(null);
                                 } catch (e: any) {
-                                    alert(e?.message || 'Notiz konnte nicht gespeichert werden.');
+                                    toast.error(e?.message || 'Notiz konnte nicht gespeichert werden.');
                                 }
                             }}
                             className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800"
