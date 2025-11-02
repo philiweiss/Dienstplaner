@@ -145,8 +145,8 @@ const Profile: React.FC = () => {
         <h3 className="text-lg font-semibold mb-4">Geburtstag & Jubiläum</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700" htmlFor="birthday">Geburtstag</label>
-            <input id="birthday" type="date" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500 sm:text-sm" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="birthday">Geburtstag</label>
+            <input id="birthday" type="date" className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm transition-colors" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700" htmlFor="anniversary">Jubiläum (Betriebszugehörigkeit)</label>

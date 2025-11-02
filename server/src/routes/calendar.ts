@@ -135,7 +135,7 @@ router.get('/:token.ics', async (req, res) => {
     );
 
     const [absRows]: any = await pool.query(
-      `SELECT id, DATE_FORMAT(date, '%Y-%m-%d') AS date, type, COALESCE(note, '') AS note
+      `SELECT id, DATE_FORMAT(date, '%Y-%m-%d') AS date, type, COALESCE(part, 'FULL') AS part, COALESCE(note, '') AS note
        FROM absences
        WHERE user_id = ? AND date BETWEEN ? AND ?
        ORDER BY date ASC`,
