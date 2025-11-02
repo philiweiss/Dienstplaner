@@ -322,38 +322,50 @@ const ScheduleView: React.FC = () => {
                                 );
                             })()}
 
-                            {/* Admin-Übersicht: Wer ist abwesend (Urlaub/Seminar) */}
-                            {isAdmin && (() => {
-                                const dayAbs = absences.filter(a => a.date === dateString);
-                                if (dayAbs.length === 0) return null;
-                                return (
-                                    <div className="mb-3">
-                                        <div className="text-xs font-semibold text-gray-600 mb-1">Abwesend:</div>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {dayAbs.map(a => {
-                                                const u = users.find(x => x.id === a.userId);
-                                                const label = a.type === 'VACATION' ? 'Urlaub' : 'Seminar';
-                                                return (
-                                                    <span key={a.id} className="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-800 px-2 py-0.5 rounded-full text-xs">
-                                                        <span>{a.userName || u?.name || a.userId} · {label}</span>
-                                                        <button
-                                                            onClick={() => {
-                                                                if (confirm('Abwesenheit wirklich entfernen?')) {
-                                                                    removeAbsence(a.id);
-                                                                }
-                                                            }}
-                                                            className="text-blue-700 hover:text-blue-900"
-                                                            title="Abwesenheit löschen"
-                                                        >
-                                                            ×
-                                                        </button>
-                                                    </span>
-                                                );
-                                            })}
-                                        </div>
+                            {/* Admin-Übersicht: Wer ist abwesend (alle Typen) + Schnellzugriff anlegen */}
+                            {isAdmin && (
+                                <div className="mb-3">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <div className="text-xs font-semibold text-gray-600">Abwesend:</div>
+                                        <button
+                                            onClick={() => setAbsenceModal({ open: true, userId: '', type: 'SICK', start: dateString, end: dateString, part: 'FULL', note: '' })}
+                                            className="text-xs px-2 py-0.5 rounded bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700"
+                                            title="Abwesenheit für Nutzer eintragen"
+                                        >
+                                            + Eintragen
+                                        </button>
                                     </div>
-                                );
-                            })()}
+                                    {(() => {
+                                        const dayAbs = absences.filter(a => a.date === dateString);
+                                        if (dayAbs.length === 0) return <div className="text-xs text-gray-400">—</div>;
+                                        const partLabel = (p?: AbsencePart) => p === 'AM' ? '(VM)' : p === 'PM' ? '(NM)' : '';
+                                        const typeLabel = (t: AbsenceType) => t === 'VACATION' ? 'Urlaub' : (t === 'SEMINAR' ? 'Seminar' : 'Krank');
+                                        return (
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {dayAbs.map(a => {
+                                                    const u = users.find(x => x.id === a.userId);
+                                                    return (
+                                                        <span key={a.id} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs border ${a.type === 'SICK' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+                                                            <span>{a.userName || u?.name || a.userId} · {typeLabel(a.type)} {partLabel(a.part)}</span>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (confirm('Abwesenheit wirklich entfernen?')) {
+                                                                        removeAbsence(a.id);
+                                                                    }
+                                                                }}
+                                                                className={`${a.type === 'SICK' ? 'text-red-700 hover:text-red-900' : 'text-blue-700 hover:text-blue-900'}`}
+                                                                title="Abwesenheit löschen"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            )}
 
                             {/* Abwesenheit (Urlaub/Seminar) für aktuellen Nutzer – immer möglich, auch in gesperrter Woche */}
                             {user && (
