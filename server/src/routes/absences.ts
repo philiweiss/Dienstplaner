@@ -40,7 +40,7 @@ router.get('/user/:userId', async (req, res) => {
   const { start, end } = parse.data;
   try {
     const [rows]: any = await pool.query(
-      `SELECT a.id, a.user_id AS userId, DATE_FORMAT(a.date, '%Y-%m-%d') AS date, a.type, a.note, u.name AS userName
+      `SELECT a.id, a.user_id AS userId, DATE_FORMAT(a.date, '%Y-%m-%d') AS date, a.type, a.part, a.note, u.name AS userName
        FROM absences a
        JOIN users u ON u.id = a.user_id
        WHERE a.user_id = ? AND a.date BETWEEN ? AND ?
