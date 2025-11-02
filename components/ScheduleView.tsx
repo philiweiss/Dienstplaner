@@ -411,14 +411,69 @@ const ScheduleView: React.FC = () => {
                                 {shiftTypes.map(shiftType => {
                                     const assignment = assignments.find(a => a.date === dateString && a.shiftTypeId === shiftType.id);
                                     const assignedUsers = assignment ? assignment.userIds.map(uid => users.find(u => u.id === uid)).filter((u): u is User => !!u) : [];
-                                    
+
+                                    // Helpers for sickness/conflicts and replacement suggestions
+                                    const timeToMinutes = (t: string) => { const [hh, mm] = t.split(':').map(Number); return hh * 60 + mm; };
+                                    const stStart = timeToMinutes(shiftType.startTime);
+                                    const stEnd = timeToMinutes(shiftType.endTime);
+                                    const targetOvernight = stEnd <= stStart;
+                                    const overlaps = (aStart: number, aEnd: number, bStart: number, bEnd: number) => {
+                                        // Treat as intervals possibly overnight; simplify: if overnight, extend end by +1440
+                                        const norm = (s: number, e: number) => e <= s ? [s, e + 1440] : [s, e];
+                                        const [as, ae] = norm(aStart, aEnd);
+                                        const [bs, be] = norm(bStart, bEnd);
+                                        return as < be && bs < ae;
+                                    };
+                                    const userHasOverlappingShift = (uid: string) => {
+                                        const dayAssignments = assignments.filter(a => a.date === dateString);
+                                        for (const a of dayAssignments) {
+                                            if (!a.userIds.includes(uid)) continue;
+                                            const st = shiftTypes.find(s => s.id === a.shiftTypeId);
+                                            if (!st) continue;
+                                            const s1 = timeToMinutes(st.startTime);
+                                            const e1 = timeToMinutes(st.endTime);
+                                            if (overlaps(stStart, stEnd, s1, e1)) return true;
+                                        }
+                                        return false;
+                                    };
+
                                     const effective = getEffectiveShiftLimits(dateString, shiftType.id);
                                     const isFull = assignedUsers.length >= effective.maxUsers;
                                     const isOverbooked = assignedUsers.length > effective.maxUsers;
                                     const isUnderstaffed = assignedUsers.length < effective.minUsers;
                                     const userIsAssigned = user ? assignedUsers.some(u => u.id === user.id) : false;
                                     const canSelfRegister = !isFull && isWeekOpen && !userIsAssigned && !(user && isUserAbsent(dateString, user.id));
-                                    
+
+                                    const sickOfDay = absences.filter(a => a.date === dateString && a.type === 'SICK');
+                                    const sickAssigned = assignedUsers.filter(u => sickOfDay.some(a => a.userId === u.id));
+
+                                    const weekOf = (d: Date) => {
+                                        const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+                                        tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
+                                        const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+                                        const weekNo = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+                                        return [tmp.getUTCFullYear(), weekNo] as [number, number];
+                                    };
+                                    const [wy, wn] = weekOf(new Date(dateString + 'T00:00:00Z'));
+                                    const countAssignmentsInWeek = (uid: string) => {
+                                        return assignments.filter(a => {
+                                            if (!a.userIds.includes(uid)) return false;
+                                            const [y, w] = getWeekNumber(new Date(a.date));
+                                            return y === wy && w === wn;
+                                        }).length;
+                                    };
+
+                                    const candidateUsers = users
+                                        .filter(u0 => !assignedUsers.some(u => u.id === u0.id))
+                                        .filter(u0 => !isUserAbsent(dateString, u0.id))
+                                        .filter(u0 => !userHasOverlappingShift(u0.id))
+                                        .sort((a, b) => {
+                                            const ca = countAssignmentsInWeek(a.id);
+                                            const cb = countAssignmentsInWeek(b.id);
+                                            return ca === cb ? a.name.localeCompare(b.name, 'de') : ca - cb;
+                                        })
+                                        .slice(0, 5);
+
                                     const handleSignUp = () => {
                                        if(canSelfRegister && user) {
                                             assignShift(dateString, shiftType.id, user.id);
