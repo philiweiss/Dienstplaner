@@ -15,14 +15,14 @@ export async function checkUser(username: string): Promise<{ exists: boolean; ne
   });
 }
 
-export async function loginPassword(username: string, password: string): Promise<{ user: User }> {
+export async function loginPassword(username: string, password: string): Promise<{ user: User; token: string }> {
   return jsonFetch(`/api/auth/login-password`, {
     method: 'POST',
     body: JSON.stringify({ username, password })
   });
 }
 
-export async function setPassword(username: string, password: string): Promise<{ user: User }> {
+export async function setPassword(username: string, password: string): Promise<{ user: User; token: string }> {
   return jsonFetch(`/api/auth/set-password`, {
     method: 'POST',
     body: JSON.stringify({ username, password })

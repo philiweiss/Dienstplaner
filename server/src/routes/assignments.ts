@@ -42,14 +42,16 @@ router.get('/', async (req, res) => {
 const AssignSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   shiftTypeId: z.string().min(1),
-  userId: z.string().min(1)
+  userId: z.string().min(1),
+  allowOverbook: z.boolean().optional(),
+  adminId: z.string().min(1).optional()
 });
 
 // POST /api/assignments/assign
 router.post('/assign', async (req, res) => {
   const parse = AssignSchema.safeParse(req.body);
   if (!parse.success) return res.status(400).json({ error: parse.error.format() });
-  const { date, shiftTypeId, userId } = parse.data;
+  const { date, shiftTypeId, userId, allowOverbook, adminId } = parse.data;
   try {
     // Conflict: user has an absence on this date
     const [abs]: any = await pool.query('SELECT 1 FROM absences WHERE user_id=? AND date=? LIMIT 1', [userId, date]);
@@ -66,15 +68,41 @@ router.post('/assign', async (req, res) => {
       await pool.query('INSERT INTO assignments (id, date, shift_type_id) VALUES (?, ?, ?)', [assignmentId, date, shiftTypeId]);
     }
 
-    // Check capacity
-    const [[{ maxUsers }]]: any = await pool.query('SELECT max_users AS maxUsers FROM shift_types WHERE id=?', [shiftTypeId]);
+    // Load capacity
+    const [[{ max_users }]]: any = await pool.query('SELECT max_users FROM shift_types WHERE id=? LIMIT 1', [shiftTypeId]);
+    const maxUsers = Number(max_users);
+
+    // Current occupancy
     const [[{ count }]]: any = await pool.query('SELECT COUNT(*) AS count FROM assignment_users WHERE assignment_id=?', [assignmentId]);
-    if (count >= maxUsers) return res.status(409).json({ error: 'Shift is at capacity' });
+
+    let isAdmin = false;
+    let canOverbook = false;
+    if (allowOverbook) {
+      if (!adminId) {
+        return res.status(403).json({ error: 'Admin privileges required for overbooking' });
+      }
+      const [adminRows]: any = await pool.query('SELECT role FROM users WHERE id=? LIMIT 1', [adminId]);
+      const role = adminRows?.[0]?.role;
+      if (role !== 'Admin') {
+        return res.status(403).json({ error: 'Admin privileges required for overbooking' });
+      }
+      isAdmin = true;
+      canOverbook = true;
+    }
+
+    // Enforce capacity for non-admins
+    if (!canOverbook && count >= maxUsers) {
+      return res.status(409).json({ error: 'Shift is at capacity' });
+    }
 
     // Add user if not already
     await pool.query('INSERT IGNORE INTO assignment_users (assignment_id, user_id) VALUES (?, ?)', [assignmentId, userId]);
 
-    res.status(200).json({ date, shiftTypeId, userId });
+    // Recompute occupancy to determine overbooked flag
+    const [[{ count: newCount }]]: any = await pool.query('SELECT COUNT(*) AS count FROM assignment_users WHERE assignment_id=?', [assignmentId]);
+    const overbooked = newCount > maxUsers;
+
+    res.status(200).json({ date, shiftTypeId, userId, overbooked });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to assign user' });

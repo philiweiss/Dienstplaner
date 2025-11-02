@@ -101,7 +101,7 @@ const Profile: React.FC = () => {
     <div className="max-w-2xl mx-auto space-y-8 text-gray-800 dark:text-gray-100">
       <section className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-lg shadow transition-colors">
         <h2 className="text-xl font-semibold mb-4">Profil</h2>
-        <p className="text-sm text-gray-600">Angemeldet als <span className="font-medium">{user.name}</span> ({user.role})</p>
+        <p className="text-sm text-gray-600 dark:text-gray-300">Angemeldet als <span className="font-medium">{user.name}</span> ({user.role})</p>
       </section>
 
       <section className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-lg shadow transition-colors">
@@ -149,8 +149,8 @@ const Profile: React.FC = () => {
             <input id="birthday" type="date" className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm transition-colors" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700" htmlFor="anniversary">Jubiläum (Betriebszugehörigkeit)</label>
-            <input id="anniversary" type="date" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500 sm:text-sm" value={anniversary} onChange={(e) => setAnniversary(e.target.value)} />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="anniversary">Jubiläum (Betriebszugehörigkeit)</label>
+            <input id="anniversary" type="date" className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm transition-colors" value={anniversary} onChange={(e) => setAnniversary(e.target.value)} />
           </div>
         </div>
         <div className="mt-4">
@@ -170,16 +170,16 @@ const Profile: React.FC = () => {
         </div>
       </section>
 
-      <section className="bg-white p-6 rounded-lg shadow">
+      <section className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-lg shadow transition-colors">
         <h3 className="text-lg font-semibold mb-4">Passwort ändern</h3>
         <form onSubmit={onChangePassword} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700" htmlFor="currentPassword">Aktuelles Passwort</label>
-            <input id="currentPassword" type="password" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500 sm:text-sm" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="currentPassword">Aktuelles Passwort</label>
+            <input id="currentPassword" type="password" className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm transition-colors" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} required />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700" htmlFor="newPassword">Neues Passwort</label>
-            <input id="newPassword" type="password" className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500 sm:text-sm" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300" htmlFor="newPassword">Neues Passwort</label>
+            <input id="newPassword" type="password" className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm transition-colors" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700" htmlFor="newPassword2">Neues Passwort wiederholen</label>

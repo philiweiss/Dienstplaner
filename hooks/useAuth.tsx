@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { User } from '../types';
 import { login as apiLogin, loginPassword as apiLoginPassword, setPassword as apiSetPassword } from '../services/auth';
+import { setAuthToken, getAuthToken } from '../services/api';
 
 interface AuthContextType {
     user: User | null;
@@ -40,6 +41,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const result = await apiLoginPassword(username.trim(), password);
             if (result && result.user) {
                 setUser(result.user as User);
+                setAuthToken(result.token);
                 return true;
             }
         } catch (_e) {}
@@ -51,6 +53,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const result = await apiSetPassword(username.trim(), password);
             if (result && result.user) {
                 setUser(result.user as User);
+                setAuthToken(result.token);
                 return true;
             }
         } catch (_e) {}

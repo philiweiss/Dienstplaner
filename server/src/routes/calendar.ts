@@ -188,7 +188,10 @@ router.get('/:token.ics', async (req, res) => {
       const m = String(d.getUTCMonth() + 1).padStart(2, '0');
       const dd = String(d.getUTCDate()).padStart(2, '0');
       const end = `${y}${m}${dd}`;
-      const summary = a.type === 'VACATION' ? 'Urlaub' : 'Seminar';
+      let summary = a.type === 'VACATION' ? 'Urlaub' : (a.type === 'SEMINAR' ? 'Seminar' : 'Krank');
+      if (a.part && a.part !== 'FULL') {
+        summary += a.part === 'AM' ? ' (Vormittag)' : ' (Nachmittag)';
+      }
 
       lines.push('BEGIN:VEVENT');
       lines.push(`UID:${uid}`);

@@ -11,10 +11,20 @@ export async function listAssignments(start: string, end: string): Promise<Shift
   }));
 }
 
-export async function assign(date: string, shiftTypeId: string, userId: string): Promise<void> {
-  await jsonFetch(`/api/assignments/assign`, {
+export async function assign(
+  date: string,
+  shiftTypeId: string,
+  userId: string,
+  options?: { allowOverbook?: boolean; adminId?: string }
+): Promise<{ overbooked?: boolean }> {
+  const payload: any = { date, shiftTypeId, userId };
+  if (options?.allowOverbook) {
+    payload.allowOverbook = true;
+    if (options.adminId) payload.adminId = options.adminId;
+  }
+  return jsonFetch(`/api/assignments/assign`, {
     method: 'POST',
-    body: JSON.stringify({ date, shiftTypeId, userId })
+    body: JSON.stringify(payload)
   });
 }
 

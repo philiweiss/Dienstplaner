@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
-import { User, Role, ShiftType, ShiftAssignment, WeekConfig, WeekStatus, HandoverRequest, WeekShiftOverride, Absence, AbsenceType, DayNote } from '../types';
+import { User, Role, ShiftType, ShiftAssignment, WeekConfig, WeekStatus, HandoverRequest, WeekShiftOverride, Absence, AbsenceType, DayNote, AbsencePart } from '../types';
 import * as userApi from '../services/users';
 import * as assignmentsApi from '../services/assignments';
 import * as shiftTypeApi from '../services/shiftTypes';
@@ -29,7 +29,7 @@ interface ScheduleContextType {
     respondHandover: (id: string, userId: string, action: 'accept' | 'reject') => Promise<void>;
     approveHandover: (id: string, adminId: string) => Promise<void>;
     declineHandover: (id: string, adminId: string) => Promise<void>;
-    assignShift: (date: string, shiftTypeId: string, userId: string) => void;
+    assignShift: (date: string, shiftTypeId: string, userId: string, options?: { allowOverbook?: boolean; adminId?: string }) => void;
     unassignShift: (date: string, shiftTypeId: string, userId: string) => void;
     updateWeekStatus: (year: number, weekNumber: number, status: WeekStatus) => void;
     addShiftType: (shiftType: Omit<ShiftType, 'id'>) => void;
@@ -219,7 +219,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const isUserAbsent = (date: string, userId: string) => absences.find(a => a.date === date && a.userId === userId);
 
-    const assignShift = (date: string, shiftTypeId: string, userId: string) => {
+    const assignShift = (date: string, shiftTypeId: string, userId: string, options?: { allowOverbook?: boolean; adminId?: string }) => {
         // Prevent assigning if absent (UI-side guard; backend also enforces)
         if (isUserAbsent(date, userId)) {
             return;
