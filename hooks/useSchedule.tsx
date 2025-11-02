@@ -503,6 +503,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
             dayNotes,
             isUserAbsent,
             addAbsence,
+            addAbsenceRange,
             removeAbsence,
             setDayNote,
             removeDayNote,

@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSchedule } from '../hooks/useSchedule';
-import { Role, WeekStatus, User } from '../types';
+import { Role, WeekStatus, User, AbsenceType, AbsencePart } from '../types';
 import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
 import { ChevronLeftIcon, ChevronRightIcon, LockClosedIcon, PlusIcon, TrashIcon, ExclamationIcon } from './icons';
 
@@ -436,7 +436,7 @@ const ScheduleView: React.FC = () => {
                                                     <p className={`text-sm font-semibold px-2 py-0.5 rounded-full inline-block ${shiftType.color}`}>
                                                         {shiftType.name}
                                                     </p>
-                                                    <p className="text-xs text-gray-500 mt-1">{shiftType.startTime} - {shiftType.endTime}</p>
+                                                    <p className={`text-xs ${isPerfect ? 'text-white/90' : 'text-gray-500'} mt-1`}>{shiftType.startTime} - {shiftType.endTime}</p>
                                                 </div>
                                                 <div className="text-right">
                                                      <p className={`text-xs font-semibold ${countTextClass}`}>
