@@ -755,7 +755,7 @@ const ScheduleView: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Ende</label>
-                            <input type="date" value={absenceModal.end} onChange={(e) => setAbsenceModal(m => m ? { ...m, end: e.target.value } : m)} className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2" />
+                            <input type="date" value={absenceModal.end} onChange={(e) => setAbsenceModal(m => m ? { ...m, end: e.target.value } : m)} className="block w-full text-sm rounded-md border border-gray-300 dark:border-slate-600 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 p-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Teil</label>
