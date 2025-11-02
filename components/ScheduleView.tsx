@@ -781,10 +781,10 @@ const ScheduleView: React.FC = () => {
                                                             {hasBirthday && <span title="Geburtstag" className="ml-1">🎂</span>}
                                                             {hasAnniversary && <span title="Jubiläum" className="ml-0.5">🎉</span>}
                                                         </span>
-                                                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                                        <div className="flex items-center gap-1.5 md:gap-2 flex-wrap md:flex-nowrap justify-end">
                                                             {isSick && isAdmin && candidateUsers.length > 0 && (
-                                                                <div className="flex items-center gap-1.5 mr-1">
-                                                                    <span className="text-[11px] text-gray-600">Ersatz:</span>
+                                                                <div className="flex items-center gap-2 overflow-x-auto md:overflow-visible pr-1">
+                                                                    <span className="text-[11px] md:text-xs text-gray-600 whitespace-nowrap">Ersatz:</span>
                                                                     {candidateUsers.slice(0,3).map(c => (
                                                                         <button
                                                                             key={c.id}
@@ -798,15 +798,17 @@ const ScheduleView: React.FC = () => {
                                                                                     toast.error(e?.message || 'Ersetzen fehlgeschlagen');
                                                                                 }
                                                                             }}
-                                                                            className="pl-1.5 pr-2 py-0.5 rounded bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-[11px] flex items-center gap-1.5"
+                                                                            className="pl-1.5 pr-2 py-0.5 md:px-2 md:py-0.5 rounded-md bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-[11px] md:text-xs flex items-center gap-1.5 md:gap-2"
                                                                             title={`Ersetzen durch ${c.name}`}
                                                                         >
                                                                             <Avatar user={c} size={14} />
-                                                                            <span>{c.name}</span>
+                                                                            <span className="whitespace-nowrap">{c.name}</span>
                                                                         </button>
                                                                     ))}
                                                                 </div>
                                                             )}
+                                                            {/* Separator for desktop to improve spacing between groups */}
+                                                            <span className="hidden md:block h-4 w-px bg-gray-200 mx-2" />
                                                             {(isAdmin || (user?.id === assignedUser.id && isWeekOpen)) && (
                                                                 <button onClick={() => handleSignOut(assignedUser.id)} className="text-red-500 hover:text-red-700 p-1" title="Austragen">
                                                                     <TrashIcon className="h-4 w-4" />

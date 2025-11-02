@@ -127,6 +127,32 @@ async function run() {
 
   await conn.query(sql);
 
+  // Add last_seen_changes_at to users (best-effort)
+  try {
+    await conn.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_changes_at TIMESTAMP NULL");
+  } catch (_) {}
+
+  // Create shift_changes table (best-effort)
+  try {
+    await conn.query(`CREATE TABLE IF NOT EXISTS shift_changes (
+      id VARCHAR(36) PRIMARY KEY,
+      assignment_id VARCHAR(36) NULL,
+      date DATE NOT NULL,
+      shift_type_id VARCHAR(36) NOT NULL,
+      action ENUM('ASSIGNED','UNASSIGNED','SWAPPED','SUBSTITUTION') NOT NULL,
+      actor_user_id VARCHAR(36) NULL,
+      target_user_id VARCHAR(36) NULL,
+      details VARCHAR(255) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_sc_assignment FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE SET NULL,
+      CONSTRAINT fk_sc_shift_type FOREIGN KEY (shift_type_id) REFERENCES shift_types(id) ON DELETE CASCADE,
+      CONSTRAINT fk_sc_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL,
+      CONSTRAINT fk_sc_target FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE SET NULL,
+      INDEX idx_sc_created (created_at),
+      INDEX idx_sc_target_created (target_user_id, created_at)
+    )`);
+  } catch (_) {}
+
   // Attempt to migrate existing databases: add password_hash and calendar_token if missing
   try {
     await conn.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NULL");

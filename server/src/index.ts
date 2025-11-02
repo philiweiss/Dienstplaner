@@ -15,6 +15,7 @@ import weekOverridesRouter from './routes/weekOverrides.js';
 import absencesRouter from './routes/absences.js';
 import statsRouter from './routes/stats.js';
 import dayNotesRouter from './routes/dayNotes.js';
+import changesRouter from './routes/changes.js';
 
 const app = express();
 
