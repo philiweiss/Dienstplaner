@@ -550,18 +550,19 @@ const ScheduleView: React.FC = () => {
                                         }
                                     };
 
-                                    // Color coding rules
+                                    // Color coding rules (Option A — very light pastels)
                                     const isPerfect = !isOverbooked && assignedUsers.length === effective.maxUsers && assignedUsers.length >= effective.minUsers;
+                                    // Use subtle backgrounds and borders; avoid saturated fills
                                     const containerClasses = (
-                                        isOverbooked ? 'bg-green-50 border-green-300' :
-                                        isUnderstaffed ? 'bg-red-50 border-red-400' :
-                                        isPerfect ? 'bg-green-600 border-green-700 text-white' :
+                                        isOverbooked ? 'bg-amber-50 border-amber-200' : // warning
+                                        isUnderstaffed ? 'bg-rose-50 border-rose-200' : // error
+                                        isPerfect ? 'bg-white border-emerald-200' : // success (light border only)
                                         'bg-white border-gray-200'
                                     );
                                     const countTextClass = (
-                                        isOverbooked ? 'text-green-700' :
-                                        isUnderstaffed ? 'text-red-700' :
-                                        isPerfect ? 'text-white' :
+                                        isOverbooked ? 'text-amber-700' :
+                                        isUnderstaffed ? 'text-rose-700' :
+                                        isPerfect ? 'text-emerald-700' :
                                         'text-gray-600'
                                     );
                                     const titleText = (
