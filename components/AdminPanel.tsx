@@ -200,6 +200,173 @@ const ShiftManagement: React.FC = () => {
     );
 };
 
+// Simple horizontal bar component
+const HBar: React.FC<{ label: string; value: number; max: number; colorClass?: string }> = ({ label, value, max, colorClass }) => {
+    const pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
+    return (
+        <div className="mb-2">
+            <div className="flex justify-between text-sm text-gray-700">
+                <span className="truncate mr-2" title={label}>{label}</span>
+                <span className="font-medium">{value}</span>
+            </div>
+            <div className="w-full h-2 bg-gray-100 rounded">
+                <div className={`h-2 rounded ${colorClass || 'bg-slate-500'}`} style={{ width: `${pct}%` }}></div>
+            </div>
+        </div>
+    );
+};
+
+const AnalyticsPanel: React.FC = () => {
+    const { users } = useSchedule();
+    const [selectedUserId, setSelectedUserId] = useState<string>(() => users[0]?.id || '');
+    const [userStats, setUserStats] = useState<UserStats | null>(null);
+    const [uLoading, setULoading] = useState(false);
+    const [uError, setUError] = useState<string | null>(null);
+
+    // weekly stats range: last 12 weeks by default
+    const [range, setRange] = useState<{ start: string; end: string }>(() => {
+        const endD = new Date();
+        const startD = new Date();
+        startD.setDate(endD.getDate() - 7 * 12);
+        const fmt = (d: Date) => d.toISOString().slice(0, 10);
+        return { start: fmt(startD), end: fmt(endD) };
+    });
+    const [weekly, setWeekly] = useState<WeeklyStatItem[]>([]);
+    const [wLoading, setWLoading] = useState(false);
+    const [wError, setWError] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (!selectedUserId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                setULoading(true); setUError(null);
+                const s = await getUserStats(selectedUserId);
+                if (!cancelled) setUserStats(s);
+            } catch (e: any) {
+                if (!cancelled) setUError(e?.message || 'Fehler beim Laden der Nutzer-Statistiken');
+            } finally {
+                if (!cancelled) setULoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [selectedUserId]);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                setWLoading(true); setWError(null);
+                const data = await getWeeklyStats(range.start, range.end);
+                if (!cancelled) setWeekly(data);
+            } catch (e: any) {
+                if (!cancelled) setWError(e?.message || 'Fehler beim Laden der Wochen-Statistiken');
+            } finally {
+                if (!cancelled) setWLoading(false);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [range.start, range.end]);
+
+    const maxShiftCount = useMemo(() => Math.max(0, ...(userStats?.byShiftType.map(s => s.count) || [0])), [userStats]);
+    const maxWeekly = useMemo(() => Math.max(0, ...(weekly.map(w => w.total) || [0])), [weekly]);
+
+    const shiftTypeColorToBg = (color: string) => {
+        // Backend color contains bg-xxx text-yyy, we want bg color only for the bar
+        const bgClass = color.split(' ').find(c => c.startsWith('bg-')) || 'bg-slate-400';
+        return bgClass;
+    };
+
+    const moveWeeks = (delta: number) => {
+        const s = new Date(range.start);
+        const e = new Date(range.end);
+        s.setDate(s.getDate() + delta * 7);
+        e.setDate(e.getDate() + delta * 7);
+        const fmt = (d: Date) => d.toISOString().slice(0, 10);
+        setRange({ start: fmt(s), end: fmt(e) });
+    };
+
+    return (
+        <div className="space-y-8">
+            <section>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Wer macht wie oft was?</h3>
+                <div className="flex flex-col md:flex-row md:items-end gap-3 mb-4">
+                    <div>
+                        <label className="block text-sm text-gray-600 mb-1">Nutzer</label>
+                        <select className="border rounded p-2 min-w-[200px]" value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)}>
+                            {users.map(u => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+                {uLoading ? (
+                    <p className="text-sm text-gray-500">Lade Nutzer-Statistiken…</p>
+                ) : uError ? (
+                    <p className="text-sm text-red-600">{uError}</p>
+                ) : userStats ? (
+                    <div className="bg-gray-50 border border-gray-200 rounded p-4">
+                        <div className="flex flex-wrap items-center gap-6 mb-4">
+                            <div>
+                                <div className="text-sm text-gray-500">Gesamt</div>
+                                <div className="text-2xl font-bold">{userStats.total}</div>
+                            </div>
+                            <div>
+                                <div className="text-sm text-gray-500">Letzter Einsatz</div>
+                                <div className="text-lg">{userStats.lastDate || '—'}</div>
+                            </div>
+                        </div>
+                        <div>
+                            {userStats.byShiftType.length === 0 ? (
+                                <p className="text-sm text-gray-500">Keine Daten verfügbar.</p>
+                            ) : (
+                                userStats.byShiftType.map(s => (
+                                    <HBar key={s.shiftTypeId} label={s.name} value={s.count} max={Math.max(maxShiftCount, 1)} colorClass={shiftTypeColorToBg(s.color)} />
+                                ))
+                            )}
+                        </div>
+                    </div>
+                ) : null}
+            </section>
+
+            <section>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Eintragungen pro Woche (Planungsübersicht)</h3>
+                <div className="flex items-center gap-2 mb-3">
+                    <button onClick={() => moveWeeks(-12)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded">« 12 Wochen</button>
+                    <button onClick={() => moveWeeks(-4)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded">« 4</button>
+                    <div className="text-sm text-gray-600 mx-2">{range.start} bis {range.end}</div>
+                    <button onClick={() => moveWeeks(4)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded">4 »</button>
+                    <button onClick={() => moveWeeks(12)} className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded">12 »</button>
+                </div>
+                {wLoading ? (
+                    <p className="text-sm text-gray-500">Lade Wochen-Statistiken…</p>
+                ) : wError ? (
+                    <p className="text-sm text-red-600">{wError}</p>
+                ) : weekly.length === 0 ? (
+                    <p className="text-sm text-gray-500">Keine Daten im Zeitraum.</p>
+                ) : (
+                    <div className="overflow-x-auto">
+                        <div className="min-w-[600px]">
+                            <div className="flex items-end gap-2 h-48 p-2 bg-gray-50 border border-gray-200 rounded">
+                                {weekly.map(w => {
+                                    const h = maxWeekly > 0 ? Math.max(4, Math.round((w.total / maxWeekly) * 100)) : 0;
+                                    const label = `KW ${w.week}/${w.year}`;
+                                    return (
+                                        <div key={`${w.year}-${w.week}`} className="flex-1 flex flex-col items-center">
+                                            <div className="w-6 bg-slate-500 rounded-t" style={{ height: `${h}%` }} title={`${label}: ${w.total}`}></div>
+                                            <div className="mt-1 text-[10px] text-gray-600 rotate-0">{label}</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </section>
+        </div>
+    );
+};
+
 const UserManagement: React.FC = () => {
     const { users, addUser, deleteUser, updateUser } = useSchedule();
     const [newUser, setNewUser] = useState({ name: '', role: Role.USER });
