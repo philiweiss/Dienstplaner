@@ -155,7 +155,7 @@ const Login: React.FC = () => {
                             </div>
                             {error && <p className="text-red-500 text-sm">{error}</p>}
                             <div className="flex justify-between text-sm">
-                                <button type="button" className="text-slate-600 hover:underline" onClick={() => setStep('username')}>Zurück</button>
+                                <button type="button" className="text-slate-600 dark:text-slate-300 hover:underline" onClick={() => setStep('username')}>Zurück</button>
                             </div>
                             <div>
                                 <button

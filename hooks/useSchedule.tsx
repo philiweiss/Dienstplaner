@@ -20,7 +20,8 @@ interface ScheduleContextType {
     absences: Absence[];
     dayNotes: DayNote[];
     isUserAbsent: (date: string, userId: string) => Absence | undefined;
-    addAbsence: (userId: string, date: string, type: AbsenceType, note?: string | null) => Promise<void>;
+    addAbsence: (userId: string, date: string, type: AbsenceType, note?: string | null, part?: AbsencePart) => Promise<void>;
+    addAbsenceRange: (userId: string, start: string, end: string, type: AbsenceType, note?: string | null, part?: AbsencePart) => Promise<{ created: Absence[]; skipped: { date: string; reason: string }[] }>;
     removeAbsence: (id: string) => Promise<void>;
     setDayNote: (date: string, input: { note: string; adminOnly?: boolean; approved?: boolean; createdBy?: string | null; approvedBy?: string | null }) => Promise<void>;
     removeDayNote: (date: string) => Promise<void>;
@@ -241,7 +242,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
         // persist
         (async () => {
             try {
-                await assignmentsApi.assign(date, shiftTypeId, userId);
+                await assignmentsApi.assign(date, shiftTypeId, userId, options);
             } catch (e) {
                 console.error('[useSchedule] Failed to persist assignment', e);
                 // rollback on error
