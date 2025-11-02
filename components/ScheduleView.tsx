@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSchedule } from '../hooks/useSchedule';
 import { useToast } from '../hooks/useToast';
-import { Role, WeekStatus, User, AbsenceType, AbsencePart } from '../types';
+import { Role, WeekStatus, User, AbsenceType, AbsencePart, Absence } from '../types';
 import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
 import { ChevronLeftIcon, ChevronRightIcon, LockClosedIcon, PlusIcon, TrashIcon, ExclamationIcon, LockOpenIcon } from './icons';
 
@@ -79,8 +79,9 @@ const AdminAssignControl: React.FC<{
 
     const availableUsers = useMemo(() => {
         const assignedIds = new Set(assignedUsers.map(u => u.id));
-        return users.filter(u => !assignedIds.has(u.id) && !isUserAbsent(date, u.id));
-    }, [users, assignedUsers, date, isUserAbsent]);
+        // Include absent users as disabled options (we'll gray them out with reason in the UI)
+        return users.filter(u => !assignedIds.has(u.id));
+    }, [users, assignedUsers]);
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
@@ -1000,6 +1001,90 @@ const ScheduleView: React.FC = () => {
         )}
 
         {/* Tagesnotiz-Editor */}
+        {/* Shift-Typen verwalten (Admin) */}
+        {isAdmin && showShiftManager && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+                <div className="bg-white dark:bg-slate-800 dark:text-gray-100 rounded-lg shadow-xl w-full max-w-3xl p-4 border border-gray-200 dark:border-slate-700">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold">Schichttypen verwalten</h3>
+                        <button onClick={() => setShowShiftManager(false)} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">Schließen</button>
+                    </div>
+                    {shiftError && (<div className="mb-2 text-sm text-red-600">{shiftError}</div>)}
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                            <thead>
+                                <tr className="text-left text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-slate-700">
+                                    <th className="py-2 pr-2">Name</th>
+                                    <th className="py-2 pr-2">Start</th>
+                                    <th className="py-2 pr-2">Ende</th>
+                                    <th className="py-2 pr-2">Farbe (Tailwind Klassen)</th>
+                                    <th className="py-2 pr-2">Min</th>
+                                    <th className="py-2 pr-2">Max</th>
+                                    <th className="py-2 pr-2">Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {shiftTypes.map(st => (
+                                    <tr key={st.id} className="border-b border-gray-100 dark:border-slate-700/60">
+                                        <td className="py-1 pr-2">
+                                            <input defaultValue={st.name} onBlur={(e) => updateShiftType(st.id, { name: e.target.value })} className="w-40 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                        </td>
+                                        <td className="py-1 pr-2">
+                                            <input type="time" defaultValue={st.startTime} onBlur={(e) => updateShiftType(st.id, { startTime: e.target.value })} className="w-28 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                        </td>
+                                        <td className="py-1 pr-2">
+                                            <input type="time" defaultValue={st.endTime} onBlur={(e) => updateShiftType(st.id, { endTime: e.target.value })} className="w-28 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                        </td>
+                                        <td className="py-1 pr-2">
+                                            <input defaultValue={st.color} onBlur={(e) => updateShiftType(st.id, { color: e.target.value })} className="w-64 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                        </td>
+                                        <td className="py-1 pr-2">
+                                            <input type="number" min={0} defaultValue={st.minUsers} onBlur={(e) => updateShiftType(st.id, { minUsers: Math.max(0, parseInt(e.target.value || '0', 10)) })} className="w-20 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                        </td>
+                                        <td className="py-1 pr-2">
+                                            <input type="number" min={0} defaultValue={st.maxUsers} onBlur={(e) => updateShiftType(st.id, { maxUsers: Math.max(0, parseInt(e.target.value || '0', 10)) })} className="w-20 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                        </td>
+                                        <td className="py-1 pr-2">
+                                            <button onClick={() => { if (confirm('Diesen Schichttyp wirklich löschen? Dies entfernt auch zugehörige Zuweisungen.')) deleteShiftType(st.id); }} className="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700">Löschen</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                <tr>
+                                    <td className="py-1 pr-2">
+                                        <input value={newShift.name} onChange={(e) => setNewShift(s => ({ ...s, name: e.target.value }))} placeholder="Name" className="w-40 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                        <input type="time" value={newShift.startTime} onChange={(e) => setNewShift(s => ({ ...s, startTime: e.target.value }))} className="w-28 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                        <input type="time" value={newShift.endTime} onChange={(e) => setNewShift(s => ({ ...s, endTime: e.target.value }))} className="w-28 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                        <input value={newShift.color} onChange={(e) => setNewShift(s => ({ ...s, color: e.target.value }))} placeholder="bg-sky-200 text-sky-800" className="w-64 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                        <input type="number" min={0} value={newShift.minUsers} onChange={(e) => setNewShift(s => ({ ...s, minUsers: Math.max(0, parseInt(e.target.value || '0', 10)) }))} className="w-20 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                        <input type="number" min={0} value={newShift.maxUsers} onChange={(e) => setNewShift(s => ({ ...s, maxUsers: Math.max(0, parseInt(e.target.value || '0', 10)) }))} className="w-20 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                        <button onClick={() => {
+                                            setShiftError('');
+                                            if (!newShift.name.trim()) { setShiftError('Name darf nicht leer sein.'); return; }
+                                            if (newShift.maxUsers < newShift.minUsers) { setShiftError('Max darf nicht kleiner als Min sein.'); return; }
+                                            addShiftType({ name: newShift.name.trim(), startTime: newShift.startTime, endTime: newShift.endTime, color: newShift.color.trim() || 'bg-gray-200 text-gray-800', minUsers: newShift.minUsers, maxUsers: newShift.maxUsers });
+                                            setNewShift({ name: '', startTime: '08:00', endTime: '16:00', color: 'bg-gray-200 text-gray-800', minUsers: 1, maxUsers: 1 });
+                                        }} className="px-2 py-1 rounded bg-slate-700 text-white hover:bg-slate-800">Hinzufügen</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        )}
+
         {noteEditor && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
                 <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-4">

@@ -8,7 +8,6 @@ import ToastContainer from './components/ToastContainer';
 import Login from './components/Login';
 import Header from './components/Header';
 import ScheduleView from './components/ScheduleView';
-import AdminPanel from './components/AdminPanel';
 import Profile from './components/Profile';
 
 type View = 'schedule' | 'admin' | 'profile';
