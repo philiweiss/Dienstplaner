@@ -5,7 +5,7 @@ import { useSchedule } from '../hooks/useSchedule';
 import { useToast } from '../hooks/useToast';
 import { Role, WeekStatus, User, AbsenceType, AbsencePart } from '../types';
 import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
-import { ChevronLeftIcon, ChevronRightIcon, LockClosedIcon, PlusIcon, TrashIcon, ExclamationIcon } from './icons';
+import { ChevronLeftIcon, ChevronRightIcon, LockClosedIcon, PlusIcon, TrashIcon, ExclamationIcon, LockOpenIcon } from './icons';
 
 // Lightweight Avatar component (no backend changes). Uses DiceBear by name as seed with initials fallback.
 const stringToColor = (str: string) => {
@@ -39,6 +39,20 @@ const Avatar: React.FC<{ user: User; size?: number; className?: string }> = ({ u
             )}
         </div>
     );
+};
+
+// Map stronger tailwind color pairs like "bg-sky-200 text-sky-800" to very light pastels
+// Example result: "bg-sky-50 text-sky-700 border border-sky-200"
+const pastelizeShiftColor = (color: string) => {
+    try {
+        // Extract first bg color token
+        const match = color.match(/bg-([a-z]+)-(\d{2,3})/i);
+        const hue = match?.[1] || 'sky';
+        // Compose pastel classes (Option A palette tendencies)
+        return `bg-${hue}-50 text-${hue}-700 border border-${hue}-200`;
+    } catch {
+        return 'bg-sky-50 text-sky-700 border border-sky-200';
+    }
 };
 
 // Helper to get week number
@@ -102,12 +116,13 @@ const AdminAssignControl: React.FC<{
 
 
 const ScheduleView: React.FC = () => {
+    const [showShiftManager, setShowShiftManager] = useState(false);
     const [calendarUrl, setCalendarUrl] = useState<string | null>(null);
     const [calLoading, setCalLoading] = useState(false);
     const [calError, setCalError] = useState<string | null>(null);
     const { user } = useAuth();
     const toast = useToast();
-    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, addAbsenceRange, removeAbsence, dayNotes, setDayNote, removeDayNote, updateWeekStatus } = useSchedule();
+    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, handoversAdmin, refreshHandovers, requestHandover, respondHandover, approveHandover, declineHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, addAbsenceRange, removeAbsence, dayNotes, setDayNote, removeDayNote, updateWeekStatus, updateWeekOverride, addShiftType, updateShiftType, deleteShiftType } = useSchedule();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [transferModal, setTransferModal] = useState<{ open: boolean; date: string; shiftTypeId: string; toUserId: string } | null>(null);
     const [noteEditor, setNoteEditor] = useState<{ date: string; text: string; adminOnly: boolean } | null>(null);
@@ -574,24 +589,24 @@ const ScheduleView: React.FC = () => {
 
                                     const cardHasSick = sickAssigned.length > 0;
                                     return (
-                                        <div key={shiftType.id} className={`p-2.5 rounded-md shadow-sm border ${containerClasses} ${cardHasSick ? 'border-red-500 ring-1 ring-red-300' : ''}`} title={titleText}>
+                                        <div key={shiftType.id} className={`p-2.5 rounded-md shadow-sm border ${containerClasses} ${cardHasSick ? 'border-rose-400 ring-1 ring-rose-200' : ''}`} title={titleText}>
                                             <div className="flex justify-between items-start">
                                                 <div>
-                                                    <p className={`text-sm font-semibold px-2 py-0.5 rounded-full inline-block ${shiftType.color}`}>
+                                                    <p className={`text-sm font-semibold px-2 py-0.5 rounded-full inline-block ${pastelizeShiftColor(shiftType.color)}`}>
                                                         {shiftType.name}
                                                     </p>
-                                                    <p className={`text-xs ${isPerfect ? 'text-white/90' : 'text-gray-500'} mt-1`}>{shiftType.startTime} - {shiftType.endTime}</p>
+                                                    <p className={`text-xs ${isPerfect ? 'text-emerald-700' : 'text-gray-500'} mt-1`}>{shiftType.startTime} - {shiftType.endTime}</p>
                                                 </div>
                                                 <div className="text-right">
                                                      <p className={`text-xs font-semibold ${countTextClass}`}>
                                                         {assignedUsers.length} / {effective.maxUsers}
                                                     </p>
-                                                    {isUnderstaffed && <ExclamationIcon className="h-5 w-5 text-red-500 mt-1" title={`Mindestbesetzung: ${effective.minUsers}`} />}
+                                                    {isUnderstaffed && <ExclamationIcon className="h-5 w-5 text-rose-600 mt-1" title={`Mindestbesetzung: ${effective.minUsers}`} />}
                                                 </div>
                                             </div>
 
                                             {cardHasSick && (
-                                                <div className="mt-2 p-2 rounded border border-red-200 bg-red-50 text-red-800 text-xs">
+                                                <div className="mt-2 p-2 rounded border border-rose-200 bg-rose-50 text-rose-800 text-xs">
                                                     <span className="font-semibold">Krank:</span>{' '}
                                                     {sickAssigned.map(u => u.name).join(', ')}
                                                 </div>
@@ -604,7 +619,7 @@ const ScheduleView: React.FC = () => {
                                                     const hasAnniversary = assignedUser.anniversary ? assignedUser.anniversary.slice(5) === md : false;
                                                     const isSick = sickAssigned.some(u => u.id === assignedUser.id);
                                                     return (
-                                                    <div key={assignedUser.id} className={`flex items-center justify-between p-2 rounded-lg text-sm font-medium shadow-sm ${isSick ? 'bg-red-100 text-red-800 border border-red-200' : (user?.id === assignedUser.id ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800')}`}>
+                                                    <div key={assignedUser.id} className={`flex items-center justify-between p-2 rounded-lg text-sm font-medium shadow-sm ${isSick ? 'bg-rose-50 text-rose-800 border border-rose-200' : (user?.id === assignedUser.id ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-50 text-gray-800 border border-gray-200')}`}>
                                                         <span className="flex items-center gap-2">
                                                             <Avatar user={assignedUser} size={22} />
                                                             <span>{assignedUser.name}</span>
