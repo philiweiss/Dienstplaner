@@ -89,6 +89,9 @@ const AdminAssignControl: React.FC<{
         return availableUsers.filter(u => (u.name || '').toLowerCase().includes(q));
     }, [availableUsers, query]);
 
+    const typeLabelLocal = (t: AbsenceType) => t === 'VACATION' ? 'Urlaub' : (t === 'SEMINAR' ? 'Seminar' : 'Krank');
+    const partLabelLocal = (p?: AbsencePart) => p === 'AM' ? 'Vorm.' : (p === 'PM' ? 'Nachm.' : undefined);
+
     useEffect(() => {
         const onClick = (e: MouseEvent) => {
             if (!wrapRef.current) return;
@@ -126,7 +129,7 @@ const AdminAssignControl: React.FC<{
         } else if (e.key === 'Enter') {
             e.preventDefault();
             const choice = filtered[highlighted];
-            if (choice) doAssign(choice.id);
+            if (choice && !isUserAbsent(date, choice.id)) doAssign(choice.id);
         } else if (e.key === 'Escape') {
             setIsOpen(false);
         }
@@ -162,8 +165,8 @@ const AdminAssignControl: React.FC<{
                 </div>
                 {/* Fallback add button for mouse users when an option is highlighted */}
                 <button
-                    onClick={() => { const choice = filtered[highlighted]; if (choice) doAssign(choice.id); }}
-                    disabled={filtered.length === 0}
+                    onClick={() => { const choice = filtered[highlighted]; if (choice && !isUserAbsent(date, choice.id)) doAssign(choice.id); }}
+                    disabled={filtered.length === 0 || (!!filtered[highlighted] && !!isUserAbsent(date, filtered[highlighted].id))}
                     className="p-2 bg-slate-700 text-white rounded-md hover:bg-slate-800 disabled:bg-gray-300"
                     title="Ausgewählten Benutzer zuweisen"
                 >
@@ -177,17 +180,32 @@ const AdminAssignControl: React.FC<{
                         <div className="px-3 py-2 text-sm text-gray-500">Keine Treffer</div>
                     ) : (
                         <ul className="max-h-56 overflow-auto py-1">
-                            {filtered.map((u, idx) => (
-                                <li
-                                    key={u.id}
-                                    onMouseEnter={() => setHighlighted(idx)}
-                                    onMouseDown={(e) => { e.preventDefault(); doAssign(u.id); }}
-                                    className={`${idx === highlighted ? 'bg-slate-100 dark:bg-slate-700' : ''} cursor-pointer px-3 py-2 flex items-center gap-2`}
-                                >
-                                    <Avatar user={u} size={20} />
-                                    <span className="text-sm text-gray-900 dark:text-gray-100">{u.name}</span>
-                                </li>
-                            ))}
+                            {filtered.map((u, idx) => {
+                                const abs = isUserAbsent(date, u.id);
+                                const disabled = !!abs;
+                                const reason = abs ? `${typeLabelLocal(abs.type)}${abs.part && abs.part !== 'FULL' ? ` · ${partLabelLocal(abs.part)}` : ''}` : '';
+                                return (
+                                    <li
+                                        key={u.id}
+                                        onMouseEnter={() => setHighlighted(idx)}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            if (!disabled) doAssign(u.id);
+                                        }}
+                                        aria-disabled={disabled}
+                                        title={disabled ? reason : undefined}
+                                        className={`${idx === highlighted ? 'bg-slate-100 dark:bg-slate-700' : ''} ${disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'} px-3 py-2 flex items-center gap-2`}
+                                    >
+                                        <Avatar user={u} size={20} />
+                                        <span className={`text-sm ${disabled ? 'text-gray-400 dark:text-gray-500' : 'text-gray-900 dark:text-gray-100'}`}>{u.name}</span>
+                                        {disabled && (
+                                            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300 border border-gray-200 dark:border-slate-600">
+                                                {reason}
+                                            </span>
+                                        )}
+                                    </li>
+                                );
+                            })}
                         </ul>
                     )}
                 </div>
@@ -782,9 +800,9 @@ const ScheduleView: React.FC = () => {
                                                             {hasBirthday && <span title="Geburtstag" className="ml-1">🎂</span>}
                                                             {hasAnniversary && <span title="Jubiläum" className="ml-0.5">🎉</span>}
                                                         </span>
-                                                        <div className="flex items-center gap-1.5 md:gap-2 flex-wrap md:flex-nowrap justify-end">
+                                                        <div className="flex items-center gap-1.5 md:gap-3 flex-wrap md:flex-nowrap justify-end min-w-0">
                                                             {isSick && isAdmin && candidateUsers.length > 0 && (
-                                                                <div className="flex items-center gap-2 overflow-x-auto md:overflow-visible pr-1">
+                                                                <div className="flex items-center gap-2 overflow-x-auto md:overflow-visible pr-1 md:pr-2">
                                                                     <span className="text-[11px] md:text-xs text-gray-600 whitespace-nowrap">Ersatz:</span>
                                                                     {candidateUsers.slice(0,3).map(c => (
                                                                         <button
@@ -809,7 +827,7 @@ const ScheduleView: React.FC = () => {
                                                                 </div>
                                                             )}
                                                             {/* Separator for desktop to improve spacing between groups */}
-                                                            <span className="hidden md:block h-4 w-px bg-gray-200 mx-2" />
+                                                            <span className="hidden md:block h-5 w-px bg-gray-200 mx-2 md:mx-3" />
                                                             {(isAdmin || (user?.id === assignedUser.id && isWeekOpen)) && (
                                                                 <button onClick={() => handleSignOut(assignedUser.id)} className="text-red-500 hover:text-red-700 p-1" title="Austragen">
                                                                     <TrashIcon className="h-4 w-4" />

@@ -98,6 +98,16 @@ router.post('/assign', async (req, res) => {
     // Add user if not already
     await pool.query('INSERT IGNORE INTO assignment_users (assignment_id, user_id) VALUES (?, ?)', [assignmentId, userId]);
 
+    // Log change: ASSIGNED
+    try {
+      const id = randomUUID();
+      await pool.query(
+        `INSERT INTO shift_changes (id, assignment_id, date, shift_type_id, action, actor_user_id, target_user_id, details)
+         VALUES (?, ?, ?, ?, 'ASSIGNED', ?, ?, NULL)`,
+        [id, assignmentId, date, shiftTypeId, adminId || null, userId]
+      );
+    } catch (_) {}
+
     // Recompute occupancy to determine overbooked flag
     const [[{ count: newCount }]]: any = await pool.query('SELECT COUNT(*) AS count FROM assignment_users WHERE assignment_id=?', [assignmentId]);
     const overbooked = newCount > maxUsers;
@@ -121,6 +131,16 @@ router.post('/unassign', async (req, res) => {
     if (!assignmentId) return res.status(404).json({ error: 'Assignment not found' });
 
     await pool.query('DELETE FROM assignment_users WHERE assignment_id=? AND user_id=?', [assignmentId, userId]);
+
+    // Log change: UNASSIGNED
+    try {
+      const id = randomUUID();
+      await pool.query(
+        `INSERT INTO shift_changes (id, assignment_id, date, shift_type_id, action, actor_user_id, target_user_id, details)
+         VALUES (?, ?, ?, ?, 'UNASSIGNED', NULL, ?, NULL)`,
+        [id, assignmentId, date, shiftTypeId, userId]
+      );
+    } catch (_) {}
 
     // Optionally cleanup empty assignment rows
     await pool.query('DELETE a FROM assignments a LEFT JOIN assignment_users au ON au.assignment_id=a.id WHERE a.id=? AND au.assignment_id IS NULL', [assignmentId]);

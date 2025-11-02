@@ -157,6 +157,24 @@ router.post('/:id/approve', async (req, res) => {
     await pool.query('DELETE FROM assignment_users WHERE assignment_id=? AND user_id=?', [r.assignmentId, r.fromUserId]);
     await pool.query('INSERT IGNORE INTO assignment_users (assignment_id, user_id) VALUES (?, ?)', [r.assignmentId, r.toUserId]);
 
+    // Log change: SUBSTITUTION (Vertretung)
+    try {
+      const [[a]]: any = await pool.query(
+        'SELECT DATE_FORMAT(date, "%Y-%m-%d") AS date, shift_type_id AS shiftTypeId FROM assignments WHERE id=? LIMIT 1',
+        [r.assignmentId]
+      );
+      const date = a?.date as string;
+      const shiftTypeId = a?.shiftTypeId as string;
+      if (date && shiftTypeId) {
+        const idChange = randomUUID();
+        await pool.query(
+          `INSERT INTO shift_changes (id, assignment_id, date, shift_type_id, action, actor_user_id, target_user_id, details)
+           VALUES (?, ?, ?, ?, 'SUBSTITUTION', ?, ?, NULL)`,
+          [idChange, r.assignmentId, date, shiftTypeId, r.fromUserId, r.toUserId]
+        );
+      }
+    } catch (_) {}
+
     await pool.query('UPDATE handover_requests SET status="APPROVED" WHERE id=?', [id]);
     res.json({ id, status: 'APPROVED' });
   } catch (e) {

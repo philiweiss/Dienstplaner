@@ -10,7 +10,7 @@ import Header from './components/Header';
 import ScheduleView from './components/ScheduleView';
 import Profile from './components/Profile';
 
-type View = 'schedule' | 'admin' | 'profile';
+type View = 'schedule' | 'profile';
 
 const AppContent: React.FC = () => {
     const { user } = useAuth();
@@ -29,7 +29,6 @@ const AppContent: React.FC = () => {
                             <Header currentView={view} setView={setView} />
                             <main className="p-4 sm:p-6 lg:p-8">
                                 {view === 'schedule' && <ScheduleView />}
-                                {view === 'admin' && <AdminPanel />}
                                 {view === 'profile' && <Profile />}
                             </main>
                         </div>

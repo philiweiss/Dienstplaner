@@ -62,6 +62,8 @@ router.post('/login', async (req, res) => {
     if (user.password_hash) {
       return res.status(400).json({ error: 'Passwort erforderlich' });
     }
+    // Initialize last_seen_changes_at as baseline for unread indicator
+    try { await pool.query('UPDATE users SET last_seen_changes_at = NOW() WHERE id=?', [user.id]); } catch (_) {}
     return res.json({ user: { id: user.id, name: user.name, role: user.role }, needsPassword: true });
   } catch (e) {
     console.error(e);
@@ -81,6 +83,7 @@ router.post('/login-password', async (req, res) => {
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
     const token = signToken({ id: user.id, name: user.name, role: user.role });
+    try { await pool.query('UPDATE users SET last_seen_changes_at = NOW() WHERE id=?', [user.id]); } catch (_) {}
     return res.json({ user: { id: user.id, name: user.name, role: user.role }, token });
   } catch (e) {
     console.error(e);

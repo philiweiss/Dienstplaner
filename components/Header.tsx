@@ -2,13 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Role } from '../types';
-import { CalendarIcon, CogIcon, LogoutIcon, MoonIcon, SunIcon } from './icons';
+import { CalendarIcon, LogoutIcon, MoonIcon, SunIcon, BellIcon, CogIcon } from './icons';
 import { getUserStats, type UserStats } from '../services/stats';
 import { useTheme } from '../hooks/useTheme';
+import { getUnreadChangesCount, getRecentChanges, markChangesSeen, formatChangeText, type ChangeItem } from '../services/changes';
 
 interface HeaderProps {
-    currentView: 'schedule' | 'admin' | 'profile';
-    setView: (view: 'schedule' | 'admin' | 'profile') => void;
+    currentView: 'schedule' | 'profile';
+    setView: (view: 'schedule' | 'profile') => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
@@ -16,6 +17,10 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
     const { theme, toggleTheme } = useTheme();
     const [stats, setStats] = useState<UserStats | null>(null);
     const [loading, setLoading] = useState(false);
+    const [unread, setUnread] = useState<number>(0);
+    const [open, setOpen] = useState(false);
+    const [recent, setRecent] = useState<ChangeItem[] | null>(null);
+    const [loadingRecent, setLoadingRecent] = useState(false);
 
     useEffect(() => {
         let cancelled = false;
@@ -55,12 +60,6 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
                                     <CalendarIcon className="h-5 w-5 mr-2" />
                                     Dienstplan
                                 </a>
-                                {user.role === Role.ADMIN && (
-                                    <a onClick={() => setView('admin')} className={`${navItemClasses} ${currentView === 'admin' ? activeClasses : inactiveClasses}`}>
-                                        <CogIcon className="h-5 w-5 mr-2" />
-                                        Admin-Panel
-                                    </a>
-                                )}
                                 <a onClick={() => setView('profile')} className={`${navItemClasses} ${currentView === 'profile' ? activeClasses : inactiveClasses}`}>
                                     <span className="h-5 w-5 mr-2 inline-block rounded-full bg-slate-600 text-white text-xs leading-5 text-center">P</span>
                                     Profil
