@@ -217,14 +217,17 @@ const AdminAssignControl: React.FC<{
 
 const ScheduleView: React.FC = () => {
     const [showShiftManager, setShowShiftManager] = useState(false);
+    const [showUserManager, setShowUserManager] = useState(false);
     const [newShift, setNewShift] = useState({ name: '', startTime: '08:00', endTime: '16:00', color: 'bg-gray-200 text-gray-800', minUsers: 1, maxUsers: 1 });
     const [shiftError, setShiftError] = useState<string>('');
+    const [userError, setUserError] = useState<string>('');
+    const [newUser, setNewUser] = useState<{ name: string; role: Role; birthday?: string | null; anniversary?: string | null }>({ name: '', role: Role.USER, birthday: null, anniversary: null });
     const [calendarUrl, setCalendarUrl] = useState<string | null>(null);
     const [calLoading, setCalLoading] = useState(false);
     const [calError, setCalError] = useState<string | null>(null);
     const { user } = useAuth();
     const toast = useToast();
-    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, handoversAdmin, refreshHandovers, requestHandover, respondHandover, approveHandover, declineHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, addAbsenceRange, removeAbsence, dayNotes, setDayNote, removeDayNote, updateWeekStatus, updateWeekOverride, addShiftType, updateShiftType, deleteShiftType } = useSchedule();
+    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, handoversAdmin, refreshHandovers, requestHandover, respondHandover, approveHandover, declineHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, addAbsenceRange, removeAbsence, dayNotes, setDayNote, removeDayNote, updateWeekStatus, updateWeekOverride, addShiftType, updateShiftType, deleteShiftType, addUser, updateUser, deleteUser } = useSchedule();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [transferModal, setTransferModal] = useState<{ open: boolean; date: string; shiftTypeId: string; toUserId: string } | null>(null);
     const [noteEditor, setNoteEditor] = useState<{ date: string; text: string; adminOnly: boolean } | null>(null);
@@ -408,6 +411,13 @@ const ScheduleView: React.FC = () => {
                                 title="Schichttypen verwalten"
                             >
                                 Schichttypen
+                            </button>
+                            <button
+                                onClick={() => setShowUserManager(true)}
+                                className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 dark:hover:bg-slate-700"
+                                title="Benutzer verwalten"
+                            >
+                                Benutzer
                             </button>
                         </div>
                     )}
@@ -1094,6 +1104,82 @@ const ScheduleView: React.FC = () => {
                                             addShiftType({ name: newShift.name.trim(), startTime: newShift.startTime, endTime: newShift.endTime, color: newShift.color.trim() || 'bg-gray-200 text-gray-800', minUsers: newShift.minUsers, maxUsers: newShift.maxUsers });
                                             setNewShift({ name: '', startTime: '08:00', endTime: '16:00', color: 'bg-gray-200 text-gray-800', minUsers: 1, maxUsers: 1 });
                                         }} className="px-2 py-1 rounded bg-slate-700 text-white hover:bg-slate-800">Hinzufügen</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Benutzer verwalten (Admin) */}
+        {isAdmin && showUserManager && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
+                <div className="bg-white dark:bg-slate-800 dark:text-gray-100 rounded-lg shadow-xl w-full max-w-4xl p-4 border border-gray-200 dark:border-slate-700">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold">Benutzer verwalten</h3>
+                        <button onClick={() => setShowUserManager(false)} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">Schließen</button>
+                    </div>
+                    {userError && (<div className="mb-2 text-sm text-red-600">{userError}</div>)}
+
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                            <thead>
+                                <tr className="text-left text-gray-600 dark:text-gray-300 border-b border-gray-200 dark:border-slate-700">
+                                    <th className="py-2 pr-2">Name</th>
+                                    <th className="py-2 pr-2">Rolle</th>
+                                    <th className="py-2 pr-2">Geburtstag</th>
+                                    <th className="py-2 pr-2">Jubiläum</th>
+                                    <th className="py-2 pr-2">Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {users.map(u => (
+                                    <tr key={u.id} className="border-b border-gray-100 dark:border-slate-700/60">
+                                        <td className="py-1 pr-2">
+                                            <input defaultValue={u.name} onBlur={(e) => updateUser(u.id, { name: e.target.value })} className="w-48 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                        </td>
+                                        <td className="py-1 pr-2">
+                                            <select defaultValue={u.role} onChange={(e) => updateUser(u.id, { role: e.target.value as any })} className="w-36 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900">
+                                                <option value={Role.USER}>User</option>
+                                                <option value={Role.ADMIN}>Admin</option>
+                                            </select>
+                                        </td>
+                                        <td className="py-1 pr-2">
+                                            <input type="date" defaultValue={u.birthday || ''} onBlur={(e) => updateUser(u.id, { birthday: e.target.value || null })} className="w-40 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                        </td>
+                                        <td className="py-1 pr-2">
+                                            <input type="date" defaultValue={u.anniversary || ''} onBlur={(e) => updateUser(u.id, { anniversary: e.target.value || null })} className="w-40 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                        </td>
+                                        <td className="py-1 pr-2">
+                                            <button onClick={() => { if (confirm('Diesen Benutzer wirklich löschen?')) deleteUser(u.id); }} className="px-2 py-1 rounded bg-red-600 text-white hover:bg-red-700">Löschen</button>
+                                        </td>
+                                    </tr>
+                                ))}
+                                <tr>
+                                    <td className="py-1 pr-2">
+                                        <input value={newUser.name} onChange={(e) => setNewUser(n => ({ ...n, name: e.target.value }))} placeholder="Name" className="w-48 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                        <select value={newUser.role} onChange={(e) => setNewUser(n => ({ ...n, role: e.target.value as any }))} className="w-36 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900">
+                                            <option value={Role.USER}>User</option>
+                                            <option value={Role.ADMIN}>Admin</option>
+                                        </select>
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                        <input type="date" value={newUser.birthday || ''} onChange={(e) => setNewUser(n => ({ ...n, birthday: e.target.value || null }))} className="w-40 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                        <input type="date" value={newUser.anniversary || ''} onChange={(e) => setNewUser(n => ({ ...n, anniversary: e.target.value || null }))} className="w-40 px-2 py-1 rounded border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900" />
+                                    </td>
+                                    <td className="py-1 pr-2">
+                                        <button onClick={() => {
+                                            setUserError('');
+                                            if (!newUser.name.trim()) { setUserError('Name darf nicht leer sein.'); return; }
+                                            addUser({ name: newUser.name.trim(), role: newUser.role, birthday: newUser.birthday || null, anniversary: newUser.anniversary || null });
+                                            setNewUser({ name: '', role: Role.USER, birthday: null, anniversary: null });
+                                        }} className="px-2 py-1 rounded bg-slate-700 text-white hover:bg-slate-800">Anlegen</button>
                                     </td>
                                 </tr>
                             </tbody>
