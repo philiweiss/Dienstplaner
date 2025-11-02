@@ -1,10 +1,11 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSchedule } from '../hooks/useSchedule';
 import { WeekStatus, Role, User, ShiftType } from '../types';
 import { LockClosedIcon, LockOpenIcon, PlusIcon, TrashIcon } from './icons';
 import { useAuth } from '../hooks/useAuth';
 import { adminResetPassword } from '../services/auth';
+import { getUserStats, type UserStats, getWeeklyStats, type WeeklyStatItem } from '../services/stats';
 
 // Re-using helper from ScheduleView
 const getWeekNumber = (d: Date): [number, number] => {

@@ -507,8 +507,9 @@ const ScheduleView: React.FC = () => {
                                         undefined
                                     );
 
+                                    const cardHasSick = sickAssigned.length > 0;
                                     return (
-                                        <div key={shiftType.id} className={`p-2.5 rounded-md shadow-sm border ${containerClasses}`} title={titleText}>
+                                        <div key={shiftType.id} className={`p-2.5 rounded-md shadow-sm border ${containerClasses} ${cardHasSick ? 'border-red-500 ring-1 ring-red-300' : ''}`} title={titleText}>
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <p className={`text-sm font-semibold px-2 py-0.5 rounded-full inline-block ${shiftType.color}`}>
@@ -523,20 +524,53 @@ const ScheduleView: React.FC = () => {
                                                     {isUnderstaffed && <ExclamationIcon className="h-5 w-5 text-red-500 mt-1" title={`Mindestbesetzung: ${effective.minUsers}`} />}
                                                 </div>
                                             </div>
+
+                                            {cardHasSick && (
+                                                <div className="mt-2 p-2 rounded border border-red-200 bg-red-50 text-red-800 text-xs">
+                                                    <span className="font-semibold">Krank:</span>{' '}
+                                                    {sickAssigned.map(u => u.name).join(', ')}
+                                                </div>
+                                            )}
                                            
                                             <div className="space-y-1.5 mt-2">
                                                 {assignedUsers.map(assignedUser => {
                                                     const md = dateString.slice(5); // MM-DD
                                                     const hasBirthday = assignedUser.birthday ? assignedUser.birthday.slice(5) === md : false;
                                                     const hasAnniversary = assignedUser.anniversary ? assignedUser.anniversary.slice(5) === md : false;
+                                                    const isSick = sickAssigned.some(u => u.id === assignedUser.id);
                                                     return (
-                                                    <div key={assignedUser.id} className={`flex items-center justify-between p-1.5 rounded text-sm font-medium ${user?.id === assignedUser.id ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                                    <div key={assignedUser.id} className={`flex items-center justify-between p-1.5 rounded text-sm font-medium ${isSick ? 'bg-red-100 text-red-800 border border-red-200' : (user?.id === assignedUser.id ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800')}`}>
                                                         <span className="flex items-center gap-1">
                                                             {assignedUser.name}
+                                                            {isSick && <span className="px-1 py-0.5 text-[10px] rounded bg-red-200 text-red-900">Krank</span>}
                                                             {hasBirthday && <span title="Geburtstag" className="ml-1">🎂</span>}
                                                             {hasAnniversary && <span title="Jubiläum" className="ml-0.5">🎉</span>}
                                                         </span>
-                                                        <div className="flex items-center gap-1">
+                                                        <div className="flex items-center gap-1 flex-wrap justify-end">
+                                                            {isSick && isAdmin && candidateUsers.length > 0 && (
+                                                                <div className="flex items-center gap-1 mr-1">
+                                                                    <span className="text-[11px] text-gray-600">Ersatz:</span>
+                                                                    {candidateUsers.slice(0,3).map(c => (
+                                                                        <button
+                                                                            key={c.id}
+                                                                            onClick={async () => {
+                                                                                if (!confirm(`Soll ${assignedUser.name} durch ${c.name} ersetzt werden?`)) return;
+                                                                                try {
+                                                                                    // zuerst austragen, dann eintragen (mit Admin-Overbook falls nötig)
+                                                                                    await unassignShift(dateString, shiftType.id, assignedUser.id);
+                                                                                    assignShift(dateString, shiftType.id, c.id, { allowOverbook: true, adminId: user?.id });
+                                                                                } catch (e: any) {
+                                                                                    alert(e?.message || 'Ersetzen fehlgeschlagen');
+                                                                                }
+                                                                            }}
+                                                                            className="px-2 py-0.5 rounded bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-[11px]"
+                                                                            title={`Ersetzen durch ${c.name}`}
+                                                                        >
+                                                                            {c.name}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                             {(isAdmin || (user?.id === assignedUser.id && isWeekOpen)) && (
                                                                 <button onClick={() => handleSignOut(assignedUser.id)} className="text-red-500 hover:text-red-700 p-1" title="Austragen">
                                                                     <TrashIcon className="h-4 w-4" />
