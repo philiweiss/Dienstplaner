@@ -315,9 +315,9 @@ const UserManagement: React.FC = () => {
 };
 
 const AdminPanel: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'weeks' | 'shifts' | 'users' | 'handovers'>('weeks');
+    const [activeTab, setActiveTab] = useState<'weeks' | 'shifts' | 'users' | 'handovers' | 'analytics'>('weeks');
     
-    const TabButton: React.FC<{ tabId: 'weeks' | 'shifts' | 'users' | 'handovers', children: React.ReactNode}> = ({tabId, children}) => {
+    const TabButton: React.FC<{ tabId: 'weeks' | 'shifts' | 'users' | 'handovers' | 'analytics', children: React.ReactNode}> = ({tabId, children}) => {
         const isActive = activeTab === tabId;
         return (
             <button onClick={() => setActiveTab(tabId)} className={`px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${isActive ? 'bg-slate-200 text-slate-800' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>
@@ -409,6 +409,7 @@ const AdminPanel: React.FC = () => {
                     <TabButton tabId="shifts">Schichten</TabButton>
                     <TabButton tabId="users">Nutzer</TabButton>
                     <TabButton tabId="handovers">Übergaben</TabButton>
+                    <TabButton tabId="analytics">Auswertungen</TabButton>
                 </nav>
             </div>
 
@@ -417,6 +418,7 @@ const AdminPanel: React.FC = () => {
                 {activeTab === 'shifts' && <ShiftManagement />}
                 {activeTab === 'users' && <UserManagement />}
                 {activeTab === 'handovers' && <HandoversManagement />}
+                {activeTab === 'analytics' && <AnalyticsPanel />}
             </div>
         </div>
     );

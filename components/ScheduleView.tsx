@@ -652,6 +652,115 @@ const ScheduleView: React.FC = () => {
             </div>
         )}
 
+        {/* Admin: Abwesenheit eintragen Modal */}
+        {isAdmin && absenceModal?.open && (
+            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4">
+                <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-4">
+                    <h3 className="text-lg font-semibold mb-3">Abwesenheit eintragen</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Benutzer</label>
+                            <select
+                                value={absenceModal.userId}
+                                onChange={(e) => setAbsenceModal(m => m ? { ...m, userId: e.target.value } : m)}
+                                className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2 bg-gray-50"
+                            >
+                                <option value="">Benutzer wählen…</option>
+                                {users.map(u => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Typ</label>
+                            <select
+                                value={absenceModal.type}
+                                onChange={(e) => setAbsenceModal(m => m ? { ...m, type: e.target.value as AbsenceType } : m)}
+                                className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2 bg-gray-50"
+                            >
+                                <option value="SICK">Krank</option>
+                                <option value="VACATION">Urlaub</option>
+                                <option value="SEMINAR">Seminar</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Start</label>
+                            <input type="date" value={absenceModal.start} onChange={(e) => setAbsenceModal(m => m ? { ...m, start: e.target.value } : m)} className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Ende</label>
+                            <input type="date" value={absenceModal.end} onChange={(e) => setAbsenceModal(m => m ? { ...m, end: e.target.value } : m)} className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2" />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">Teil</label>
+                            <select
+                                value={absenceModal.part}
+                                onChange={(e) => setAbsenceModal(m => m ? { ...m, part: e.target.value as AbsencePart } : m)}
+                                className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2 bg-gray-50"
+                            >
+                                <option value="FULL">Ganzer Tag</option>
+                                <option value="AM">Vormittag</option>
+                                <option value="PM">Nachmittag</option>
+                            </select>
+                        </div>
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700">Notiz (optional)</label>
+                            <input
+                                type="text"
+                                value={absenceModal.note}
+                                onChange={(e) => setAbsenceModal(m => m ? { ...m, note: e.target.value } : m)}
+                                className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2"
+                                placeholder="z. B. Arztbesuch, Fortbildung…"
+                            />
+                        </div>
+                    </div>
+
+                    {absenceModal.result && (
+                        <div className="mt-3 p-2 rounded border text-sm bg-slate-50 border-slate-200 text-slate-800">
+                            <div className="font-semibold mb-1">Ergebnis</div>
+                            <div className="flex flex-wrap gap-2">
+                                <span className="px-2 py-0.5 rounded bg-green-100 text-green-800 border border-green-200">angelegt: {absenceModal.result.created.length}</span>
+                                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">übersprungen: {absenceModal.result.skipped.length}</span>
+                            </div>
+                            {absenceModal.result.skipped.length > 0 && (
+                                <ul className="mt-2 list-disc pl-5 text-xs text-slate-700">
+                                    {absenceModal.result.skipped.map(s => (
+                                        <li key={s.date}>{new Date(s.date).toLocaleDateString('de-DE')} – {s.reason === 'ASSIGNED' ? 'bereits in Schicht' : s.reason === 'DUPLICATE' ? 'bereits vorhanden' : 'Fehler'}</li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="flex justify-between items-center gap-2 mt-4">
+                        <button onClick={() => setAbsenceModal(null)} className="px-3 py-1.5 rounded bg-gray-200 hover:bg-gray-300">Schließen</button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={async () => {
+                                    if (!absenceModal?.userId || !absenceModal.start || !absenceModal.end) { alert('Bitte Benutzer, Start und Ende wählen.'); return; }
+                                    const s = new Date(absenceModal.start + 'T00:00:00Z');
+                                    const e = new Date(absenceModal.end + 'T00:00:00Z');
+                                    if (e < s) { alert('Ende darf nicht vor Start liegen.'); return; }
+                                    try {
+                                        setAbsenceModal(m => m ? { ...m, submitting: true, result: null } : m);
+                                        const res = await addAbsenceRange(absenceModal.userId, absenceModal.start, absenceModal.end, absenceModal.type, absenceModal.note || null, absenceModal.part);
+                                        setAbsenceModal(m => m ? { ...m, submitting: false, result: { created: res.created.map(c => ({ date: c.date })), skipped: res.skipped } } : m);
+                                    } catch (e: any) {
+                                        alert(e?.message || 'Fehler beim Anlegen der Abwesenheit');
+                                        setAbsenceModal(m => m ? { ...m, submitting: false } : m);
+                                    }
+                                }}
+                                disabled={!!absenceModal?.submitting}
+                                className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800 disabled:bg-gray-300"
+                            >
+                                {absenceModal?.submitting ? 'Speichern…' : 'Speichern'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
         {/* Tagesnotiz-Editor */}
         {noteEditor && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
