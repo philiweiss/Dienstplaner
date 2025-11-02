@@ -408,8 +408,29 @@ const ScheduleView: React.FC = () => {
                                         }
                                     };
 
+                                    // Color coding rules
+                                    const isPerfect = !isOverbooked && assignedUsers.length === effective.maxUsers && assignedUsers.length >= effective.minUsers;
+                                    const containerClasses = (
+                                        isOverbooked ? 'bg-green-50 border-green-300' :
+                                        isUnderstaffed ? 'bg-red-50 border-red-400' :
+                                        isPerfect ? 'bg-green-600 border-green-700 text-white' :
+                                        'bg-white border-gray-200'
+                                    );
+                                    const countTextClass = (
+                                        isOverbooked ? 'text-green-700' :
+                                        isUnderstaffed ? 'text-red-700' :
+                                        isPerfect ? 'text-white' :
+                                        'text-gray-600'
+                                    );
+                                    const titleText = (
+                                        isOverbooked ? 'Überbelegt' :
+                                        isUnderstaffed ? 'Unterbesetzt' :
+                                        isPerfect ? 'Top gebucht' :
+                                        undefined
+                                    );
+
                                     return (
-                                        <div key={shiftType.id} className={`p-2.5 rounded-md shadow-sm border ${isOverbooked ? 'bg-orange-50 border-orange-400' : 'bg-white'} ${!isOverbooked && isUnderstaffed && assignedUsers.length > 0 ? 'border-red-400' : (!isOverbooked ? 'border-gray-200' : '')}`} title={isOverbooked ? 'Überbelegt (Admin)' : undefined}>
+                                        <div key={shiftType.id} className={`p-2.5 rounded-md shadow-sm border ${containerClasses}`} title={titleText}>
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <p className={`text-sm font-semibold px-2 py-0.5 rounded-full inline-block ${shiftType.color}`}>
@@ -418,7 +439,7 @@ const ScheduleView: React.FC = () => {
                                                     <p className="text-xs text-gray-500 mt-1">{shiftType.startTime} - {shiftType.endTime}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                     <p className={`text-xs font-semibold ${isOverbooked ? 'text-orange-700' : 'text-gray-600'}`}>
+                                                     <p className={`text-xs font-semibold ${countTextClass}`}>
                                                         {assignedUsers.length} / {effective.maxUsers}
                                                     </p>
                                                     {isUnderstaffed && <ExclamationIcon className="h-5 w-5 text-red-500 mt-1" title={`Mindestbesetzung: ${effective.minUsers}`} />}
