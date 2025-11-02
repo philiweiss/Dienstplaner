@@ -161,7 +161,11 @@ const ScheduleView: React.FC = () => {
     useEffect(() => {
         if (user) {
             refreshHandovers(user.id);
+            if (user.role === Role.ADMIN) {
+                refreshHandovers(undefined, true);
+            }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
     const changeWeek = (direction: 'prev' | 'next') => {
@@ -259,6 +263,49 @@ const ScheduleView: React.FC = () => {
                                 title="Woche sperren/öffnen"
                             >
                                 {isWeekOpen ? 'Woche sperren' : 'Woche öffnen'}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (shiftTypes.length === 0) {
+                                        alert('Keine Schichttypen vorhanden.');
+                                        return;
+                                    }
+                                    const list = shiftTypes.map((s, idx) => `${idx + 1}: ${s.name}`).join('\n');
+                                    const sel = window.prompt(`Für welche Schicht soll die Wochen-Besetzung angepasst werden?\n${list}\nGib die Nummer ein:`);
+                                    if (!sel) return;
+                                    const idx = parseInt(sel, 10) - 1;
+                                    if (isNaN(idx) || idx < 0 || idx >= shiftTypes.length) {
+                                        alert('Ungültige Auswahl.');
+                                        return;
+                                    }
+                                    const st = shiftTypes[idx];
+                                    const minStr = window.prompt(`Min. Besetzung für KW ${weekNumber}/${year} (${st.name}). Leer lassen, um Basiswert zu verwenden.`, '');
+                                    const maxStr = window.prompt(`Max. Besetzung für KW ${weekNumber}/${year} (${st.name}). Leer lassen, um Basiswert zu verwenden.`, '');
+                                    const minUsers = minStr !== null && minStr.trim() !== '' ? Math.max(0, parseInt(minStr, 10) || 0) : undefined;
+                                    const maxUsers = maxStr !== null && maxStr.trim() !== '' ? Math.max(0, parseInt(maxStr, 10) || 0) : undefined;
+                                    if (minUsers === undefined && maxUsers === undefined) {
+                                        alert('Mindestens einen Wert (min oder max) angeben.');
+                                        return;
+                                    }
+                                    if (minUsers !== undefined && maxUsers !== undefined && maxUsers < minUsers) {
+                                        alert('Max darf nicht kleiner als Min sein.');
+                                        return;
+                                    }
+                                    updateWeekOverride({ year, weekNumber, shiftTypeId: st.id, minUsers, maxUsers })
+                                        .then(() => toast.success('Wochen-Besetzung gespeichert.'))
+                                        .catch((e: any) => toast.error(e?.message || 'Fehler beim Speichern'));
+                                }}
+                                className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 dark:hover:bg-slate-700"
+                                title="Wochen-Besetzung anpassen"
+                            >
+                                Wochen-Besetzung
+                            </button>
+                            <button
+                                onClick={() => setShowShiftManager(true)}
+                                className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 dark:hover:bg-slate-700"
+                                title="Schichttypen verwalten"
+                            >
+                                Schichttypen
                             </button>
                         </div>
                     )}
