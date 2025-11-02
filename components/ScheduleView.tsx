@@ -71,10 +71,21 @@ const ScheduleView: React.FC = () => {
     const [calLoading, setCalLoading] = useState(false);
     const [calError, setCalError] = useState<string | null>(null);
     const { user } = useAuth();
-    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, removeAbsence, dayNotes, setDayNote, removeDayNote } = useSchedule();
+    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, refreshHandovers, requestHandover, respondHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, addAbsenceRange, removeAbsence, dayNotes, setDayNote, removeDayNote } = useSchedule();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [transferModal, setTransferModal] = useState<{ open: boolean; date: string; shiftTypeId: string; toUserId: string } | null>(null);
     const [noteEditor, setNoteEditor] = useState<{ date: string; text: string; adminOnly: boolean } | null>(null);
+    const [absenceModal, setAbsenceModal] = useState<{
+        open: boolean;
+        userId: string;
+        type: AbsenceType;
+        start: string;
+        end: string;
+        part: AbsencePart;
+        note: string;
+        submitting?: boolean;
+        result?: { created: { date: string }[]; skipped: { date: string; reason: string }[] } | null;
+    } | null>(null);
 
     const [year, weekNumber] = getWeekNumber(currentDate);
 
