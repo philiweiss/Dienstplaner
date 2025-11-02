@@ -21,6 +21,7 @@ const AdminAssignControl: React.FC<{
     assignedUsers: User[];
 }> = ({ date, shiftTypeId, assignedUsers }) => {
     const { users, assignShift, isUserAbsent } = useSchedule();
+    const { user } = useAuth();
     const [selectedUserId, setSelectedUserId] = useState('');
 
     const availableUsers = useMemo(() => {
@@ -30,7 +31,13 @@ const AdminAssignControl: React.FC<{
 
     const handleAssign = () => {
         if (selectedUserId) {
-            assignShift(date, shiftTypeId, selectedUserId);
+            const isAdmin = user?.role === Role.ADMIN;
+            assignShift(
+                date,
+                shiftTypeId,
+                selectedUserId,
+                isAdmin ? { allowOverbook: true, adminId: user!.id } : undefined
+            );
             setSelectedUserId('');
         }
     };
@@ -40,7 +47,7 @@ const AdminAssignControl: React.FC<{
             <select
                 value={selectedUserId}
                 onChange={(e) => setSelectedUserId(e.target.value)}
-                className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2 bg-gray-50"
+                className="block w-full text-sm rounded-md border border-gray-300 dark:border-slate-600 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 p-2 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 transition-colors"
             >
                 <option value="">Benutzer wählen...</option>
                 {availableUsers.map(u => (
@@ -384,6 +391,7 @@ const ScheduleView: React.FC = () => {
                                     
                                     const effective = getEffectiveShiftLimits(dateString, shiftType.id);
                                     const isFull = assignedUsers.length >= effective.maxUsers;
+                                    const isOverbooked = assignedUsers.length > effective.maxUsers;
                                     const isUnderstaffed = assignedUsers.length < effective.minUsers;
                                     const userIsAssigned = user ? assignedUsers.some(u => u.id === user.id) : false;
                                     const canSelfRegister = !isFull && isWeekOpen && !userIsAssigned && !(user && isUserAbsent(dateString, user.id));
@@ -401,7 +409,7 @@ const ScheduleView: React.FC = () => {
                                     };
 
                                     return (
-                                        <div key={shiftType.id} className={`p-2.5 rounded-md shadow-sm border bg-white ${isUnderstaffed && assignedUsers.length > 0 ? 'border-red-400' : 'border-gray-200'}`}>
+                                        <div key={shiftType.id} className={`p-2.5 rounded-md shadow-sm border ${isOverbooked ? 'bg-orange-50 border-orange-400' : 'bg-white'} ${!isOverbooked && isUnderstaffed && assignedUsers.length > 0 ? 'border-red-400' : (!isOverbooked ? 'border-gray-200' : '')}`} title={isOverbooked ? 'Überbelegt (Admin)' : undefined}>
                                             <div className="flex justify-between items-start">
                                                 <div>
                                                     <p className={`text-sm font-semibold px-2 py-0.5 rounded-full inline-block ${shiftType.color}`}>
@@ -410,7 +418,7 @@ const ScheduleView: React.FC = () => {
                                                     <p className="text-xs text-gray-500 mt-1">{shiftType.startTime} - {shiftType.endTime}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                     <p className="text-xs font-semibold text-gray-600">
+                                                     <p className={`text-xs font-semibold ${isOverbooked ? 'text-orange-700' : 'text-gray-600'}`}>
                                                         {assignedUsers.length} / {effective.maxUsers}
                                                     </p>
                                                     {isUnderstaffed && <ExclamationIcon className="h-5 w-5 text-red-500 mt-1" title={`Mindestbesetzung: ${effective.minUsers}`} />}
@@ -446,7 +454,7 @@ const ScheduleView: React.FC = () => {
                                                 })}
                                             </div>
                                             
-                                            {isAdmin && !isFull && (
+                                            {isAdmin && (
                                                 <AdminAssignControl date={dateString} shiftTypeId={shiftType.id} assignedUsers={assignedUsers} />
                                             )}
 

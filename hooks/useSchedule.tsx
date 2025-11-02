@@ -255,12 +255,30 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
         })();
     };
 
-    const addAbsence = async (userId: string, date: string, type: AbsenceType, note?: string | null) => {
+    const addAbsence = async (userId: string, date: string, type: AbsenceType, note?: string | null, part: AbsencePart = 'FULL') => {
         try {
-            const created = await absencesApi.create(userId, date, type, note);
+            const created = await absencesApi.create(userId, date, type, note, part);
             setAbsences(prev => [...prev, created]);
         } catch (e) {
             console.error('[useSchedule] Failed to create absence', e);
+            throw e;
+        }
+    };
+
+    const addAbsenceRange = async (userId: string, start: string, end: string, type: AbsenceType, note?: string | null, part: AbsencePart = 'FULL') => {
+        try {
+            const res = await absencesApi.createRange(userId, start, end, type, note, part);
+            if (Array.isArray(res?.created) && res.created.length) {
+                setAbsences(prev => {
+                    const byKey = new Map<string, Absence>();
+                    for (const a of prev) byKey.set(`${a.userId}|${a.date}`, a);
+                    for (const a of res.created) byKey.set(`${a.userId}|${a.date}`, a);
+                    return Array.from(byKey.values());
+                });
+            }
+            return res;
+        } catch (e) {
+            console.error('[useSchedule] Failed to create absence range', e);
             throw e;
         }
     };

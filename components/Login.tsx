@@ -196,7 +196,7 @@ const Login: React.FC = () => {
                                     required
                                     value={password2}
                                     onChange={(e) => setPassword2(e.target.value)}
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-slate-500 focus:border-slate-500 sm:text-sm"
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm transition-colors"
                                     disabled={loading}
                                 />
                             </div>
