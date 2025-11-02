@@ -124,4 +124,70 @@ router.delete('/:id', requireAuth, async (req, res) => {
   }
 });
 
+// POST /api/absences/range (auth required)
+const RangeSchema = z.object({
+  userId: z.string().min(1),
+  start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  type: z.enum(['VACATION', 'SEMINAR', 'SICK']),
+  part: z.enum(['FULL','AM','PM']).optional().default('FULL'),
+  note: z.string().max(500).optional().nullable(),
+});
+
+router.post('/range', requireAuth, async (req, res) => {
+  const parse = RangeSchema.safeParse(req.body);
+  if (!parse.success) return res.status(400).json({ error: parse.error.format() });
+  const { userId, start, end, type, part, note } = parse.data as { userId: string; start: string; end: string; type: 'VACATION'|'SEMINAR'|'SICK'; part: 'FULL'|'AM'|'PM'; note?: string|null };
+
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    if (req.user.role !== 'Admin' && req.user.id !== userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+    const dStart = new Date(start + 'T00:00:00Z');
+    const dEnd = new Date(end + 'T00:00:00Z');
+    if (isNaN(dStart.getTime()) || isNaN(dEnd.getTime()) || dEnd < dStart) {
+      return res.status(400).json({ error: 'Invalid date range' });
+    }
+    // cap range to 366 days
+    const maxDays = 366;
+    const created: any[] = [];
+    const skipped: any[] = [];
+    const cur = new Date(dStart);
+    while (cur <= dEnd && created.length + skipped.length < maxDays) {
+      const date = cur.toISOString().slice(0,10);
+      try {
+        if (type !== 'SICK') {
+          const [rows]: any = await pool.query(
+            `SELECT 1 FROM assignment_users au JOIN assignments a ON a.id = au.assignment_id WHERE au.user_id=? AND a.date=? LIMIT 1`,
+            [userId, date]
+          );
+          if (Array.isArray(rows) && rows.length) {
+            skipped.push({ date, reason: 'ASSIGNED' });
+            cur.setUTCDate(cur.getUTCDate() + 1);
+            continue;
+          }
+        }
+        const id = randomUUID();
+        await pool.query(
+          'INSERT INTO absences (id, user_id, date, type, part, note) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, userId, date, type, part ?? 'FULL', note ?? null]
+        );
+        created.push({ id, userId, date, type, part: part ?? 'FULL', note: note ?? null });
+      } catch (e: any) {
+        if (e?.code === 'ER_DUP_ENTRY') {
+          skipped.push({ date, reason: 'DUPLICATE' });
+        } else {
+          skipped.push({ date, reason: 'ERROR' });
+        }
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    res.json({ created, skipped });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Failed to create absence range' });
+  }
+});
+
 export default router;

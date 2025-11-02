@@ -153,7 +153,7 @@ const ShiftManagement: React.FC = () => {
                     <input type="time" value={newShift.startTime} onChange={e => setNewShift({...newShift, startTime: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm p-2" required />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Ende</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ende</label>
                     <input type="time" value={newShift.endTime} onChange={e => setNewShift({...newShift, endTime: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm p-2" required />
                 </div>
                 <div>
