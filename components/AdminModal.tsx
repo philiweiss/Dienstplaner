@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useSchedule } from '../hooks/useSchedule';
 import { useToast } from '../hooks/useToast';
 import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
-import { WeekStatus, AbsencePart, AbsenceType, Role } from '../types';
+import { WeekStatus, AbsencePart, AbsenceType, Role, ShiftType } from '../types';
 
 // Small helpers reused from ScheduleView context
 const getWeekNumber = (d: Date): [number, number] => {
@@ -40,6 +40,9 @@ const AdminModal: React.FC<{ open: boolean; onClose: () => void; currentMonday: 
     updateWeekStatus,
     updateWeekOverride,
     addAbsenceRange,
+    addShiftType,
+    updateShiftType,
+    deleteShiftType,
   } = useSchedule();
 
   const [active, setActive] = useState<AdminTab>('Woche');
@@ -280,17 +283,38 @@ const AdminModal: React.FC<{ open: boolean; onClose: () => void; currentMonday: 
 
           {/* Schichttypen */}
           {active === 'Schichttypen' && (
-            <div className="space-y-2">
-              {shiftTypes.length === 0 && <p className="text-sm text-gray-500">Keine Schichttypen vorhanden.</p>}
-              {shiftTypes.map(s => (
-                <div key={s.id} className="flex items-center justify-between p-2 rounded border bg-gray-50 dark:bg-slate-700 border-gray-200 dark:border-slate-600">
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-0.5 rounded-full text-xs border ${s.color}`}>{s.name}</span>
-                    <span className="text-xs text-gray-600 dark:text-gray-300">{s.startTime}–{s.endTime}</span>
-                  </div>
-                  <div className="text-xs text-gray-500">min {s.minUsers} · max {s.maxUsers}</div>
-                </div>
-              ))}
+            <div className="space-y-4">
+              {/* Neu anlegen */}
+              <Section title="Neuen Schichttyp anlegen">
+                <NewShiftTypeForm onCreate={(data)=>{
+                  try {
+                    addShiftType(data);
+                    toast.success('Schichttyp angelegt');
+                  } catch (e: any) {
+                    toast.error(e?.message || 'Fehler beim Anlegen');
+                  }
+                }} />
+              </Section>
+
+              <Section title="Vorhandene Schichttypen">
+                {shiftTypes.length === 0 && <p className="text-sm text-gray-500">Keine Schichttypen vorhanden.</p>}
+                <EditableShiftTypeList shiftTypes={shiftTypes} onUpdate={(id, fields)=>{
+                  try {
+                    updateShiftType(id, fields);
+                    toast.success('Gespeichert');
+                  } catch (e: any) {
+                    toast.error(e?.message || 'Fehler beim Speichern');
+                  }
+                }} onDelete={(id)=>{
+                  if (!confirm('Diesen Schichttyp wirklich löschen?')) return;
+                  try {
+                    deleteShiftType(id);
+                    toast.success('Gelöscht');
+                  } catch (e: any) {
+                    toast.error(e?.message || 'Fehler beim Löschen');
+                  }
+                }} />
+              </Section>
             </div>
           )}
 
@@ -304,6 +328,151 @@ const AdminModal: React.FC<{ open: boolean; onClose: () => void; currentMonday: 
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+type ShiftInput = Omit<ShiftType, 'id'>;
+
+const pastelHues = ['sky','emerald','amber','rose','violet','cyan','slate','gray'] as const;
+const makeColor = (hue: string) => `bg-${hue}-200 text-${hue}-800`;
+
+const timeOk = (t: string) => /^\d{2}:\d{2}$/.test(t);
+
+const NewShiftTypeForm: React.FC<{ onCreate: (data: ShiftInput) => void }>=({ onCreate })=>{
+  const [name, setName] = useState('');
+  const [startTime, setStartTime] = useState('08:00');
+  const [endTime, setEndTime] = useState('16:00');
+  const [minUsers, setMinUsers] = useState('1');
+  const [maxUsers, setMaxUsers] = useState('1');
+  const [hue, setHue] = useState<(typeof pastelHues)[number]>('sky');
+  const [customColor, setCustomColor] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const color = customColor.trim() || makeColor(hue);
+
+  const submit = () => {
+    const min = Math.max(0, parseInt(minUsers || '0', 10) || 0);
+    const max = Math.max(0, parseInt(maxUsers || '0', 10) || 0);
+    if (!name.trim()) return alert('Name ist erforderlich');
+    if (!timeOk(startTime) || !timeOk(endTime)) return alert('Zeitformat HH:mm verwenden');
+    if (max < min) return alert('Max darf nicht kleiner als Min sein');
+    setSaving(true);
+    try {
+      const data: ShiftInput = { name: name.trim(), startTime, endTime, color, minUsers: min, maxUsers: max };
+      onCreate(data);
+      // reset
+      setName(''); setStartTime('08:00'); setEndTime('16:00'); setMinUsers('1'); setMaxUsers('1'); setCustomColor(''); setHue('sky');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div>
+          <FieldLabel label="Name" />
+          <input value={name} onChange={e=>setName(e.target.value)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+        </div>
+        <div>
+          <FieldLabel label="Start" />
+          <input type="time" value={startTime} onChange={e=>setStartTime(e.target.value)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+        </div>
+        <div>
+          <FieldLabel label="Ende" />
+          <input type="time" value={endTime} onChange={e=>setEndTime(e.target.value)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+        </div>
+        <div>
+          <FieldLabel label="Min" />
+          <input inputMode="numeric" pattern="[0-9]*" value={minUsers} onChange={e=>setMinUsers(e.target.value)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+        </div>
+        <div>
+          <FieldLabel label="Max" />
+          <input inputMode="numeric" pattern="[0-9]*" value={maxUsers} onChange={e=>setMaxUsers(e.target.value)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+        </div>
+        <div>
+          <FieldLabel label="Farbe" />
+          <div className="flex gap-2 items-center mt-1">
+            <select value={hue} onChange={e=>setHue(e.target.value as any)} className="px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600">
+              {pastelHues.map(h => <option key={h} value={h}>{h}</option>)}
+            </select>
+            <span className={`px-2 py-0.5 rounded-full text-xs border ${color}`}>Vorschau</span>
+          </div>
+          <div className="mt-2">
+            <input value={customColor} onChange={e=>setCustomColor(e.target.value)} placeholder="Optional: Tailwind Klassen z.B. bg-sky-200 text-sky-800" className="w-full px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+          </div>
+        </div>
+      </div>
+      <div>
+        <button disabled={saving} onClick={submit} className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-60">Anlegen</button>
+      </div>
+    </div>
+  );
+};
+
+const EditableShiftTypeList: React.FC<{ shiftTypes: ShiftType[]; onUpdate: (id: string, fields: Partial<ShiftInput>) => void; onDelete: (id: string) => void }>=({ shiftTypes, onUpdate, onDelete })=>{
+  const [editing, setEditing] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, ShiftInput>>({});
+
+  const startEdit = (s: ShiftType) => {
+    setEditing(s.id);
+    setDrafts(prev => ({ ...prev, [s.id]: { name: s.name, startTime: s.startTime, endTime: s.endTime, color: s.color, minUsers: s.minUsers, maxUsers: s.maxUsers } }));
+  };
+  const cancel = () => setEditing(null);
+  const change = (id: string, field: keyof ShiftInput, value: any) => {
+    setDrafts(prev => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
+  };
+  const save = (id: string) => {
+    const d = drafts[id];
+    if (!d) return;
+    if (!d.name.trim()) return alert('Name ist erforderlich');
+    if (!timeOk(d.startTime) || !timeOk(d.endTime)) return alert('Zeitformat HH:mm verwenden');
+    if (d.maxUsers < d.minUsers) return alert('Max darf nicht kleiner als Min sein');
+    onUpdate(id, d);
+    setEditing(null);
+  };
+
+  return (
+    <div className="space-y-2">
+      {shiftTypes.map(s => {
+        const isEd = editing === s.id;
+        const d = drafts[s.id] || ({} as ShiftInput);
+        const color = isEd ? (d.color || s.color) : s.color;
+        return (
+          <div key={s.id} className="p-2 rounded border bg-gray-50 dark:bg-slate-700 border-gray-200 dark:border-slate-600">
+            {!isEd ? (
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={`px-2 py-0.5 rounded-full text-xs border shrink-0 ${color}`}>{s.name}</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-300">{s.startTime}–{s.endTime}</span>
+                  <span className="text-xs text-gray-500">min {s.minUsers} · max {s.maxUsers}</span>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={()=>startEdit(s)} className="px-2 py-1 rounded bg-white border border-gray-300 text-gray-700 text-xs hover:bg-gray-50">Bearbeiten</button>
+                  <button onClick={()=>onDelete(s.id)} className="px-2 py-1 rounded bg-rose-600 text-white text-xs hover:bg-rose-700">Löschen</button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
+                <input value={d.name} onChange={e=>change(s.id,'name', e.target.value)} className="px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+                <input type="time" value={d.startTime} onChange={e=>change(s.id,'startTime', e.target.value)} className="px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+                <input type="time" value={d.endTime} onChange={e=>change(s.id,'endTime', e.target.value)} className="px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+                <input inputMode="numeric" pattern="[0-9]*" value={String(d.minUsers)} onChange={e=>change(s.id,'minUsers', Math.max(0, parseInt(e.target.value||'0',10)||0))} className="px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+                <input inputMode="numeric" pattern="[0-9]*" value={String(d.maxUsers)} onChange={e=>change(s.id,'maxUsers', Math.max(0, parseInt(e.target.value||'0',10)||0))} className="px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+                <div className="flex items-center gap-2">
+                  <input value={d.color} onChange={e=>change(s.id,'color', e.target.value)} className="flex-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+                  <span className={`px-2 py-0.5 rounded-full text-xs border whitespace-nowrap ${color}`}>Vorschau</span>
+                </div>
+                <div className="md:col-span-6 flex gap-2">
+                  <button onClick={()=>save(s.id)} className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800 text-sm">Speichern</button>
+                  <button onClick={cancel} className="px-3 py-1.5 rounded bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm">Abbrechen</button>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
