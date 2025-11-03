@@ -321,46 +321,111 @@ const ScheduleView: React.FC = () => {
     
     return (
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
-            <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
-                <div className="flex items-center space-x-2 sm:space-x-4">
-                    <button onClick={() => changeWeek('prev')} className="p-2 rounded-full hover:bg-gray-200 transition">
-                        <ChevronLeftIcon className="h-6 w-6 text-gray-600" />
-                    </button>
-                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800 text-center whitespace-nowrap">
-                        KW {weekNumber}, {year}
-                    </h2>
-                    <button onClick={() => changeWeek('next')} className="p-2 rounded-full hover:bg-gray-200 transition">
-                        <ChevronRightIcon className="h-6 w-6 text-gray-600" />
-                    </button>
-                </div>
-                <div className="flex items-center space-x-2">
-                     {!isWeekOpen && (
-                        <div className="flex items-center text-sm font-semibold text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 px-3 py-1.5 rounded-full">
-                            <LockClosedIcon className="h-4 w-4 mr-2" />
-                            Woche gesperrt
+            <div className="sticky top-0 z-10 bg-white/90 dark:bg-slate-800/90 backdrop-blur supports-[backdrop-filter]:backdrop-blur rounded-md -m-4 sm:-m-6 p-4 sm:p-6 mb-4 border-b border-gray-100 dark:border-slate-700">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    {/* Links: Woche ±1 + KW + Datumsspanne */}
+                    <div className="flex items-center gap-2 sm:gap-4">
+                        <button onClick={() => changeWeek('prev')} className="p-2 rounded-full hover:bg-gray-200 transition" aria-label="Vorige Woche">
+                            <ChevronLeftIcon className="h-6 w-6 text-gray-600" />
+                        </button>
+                        <div className="flex flex-col items-center sm:items-start">
+                            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 whitespace-nowrap">KW {weekNumber}, {year}</h2>
+                            <span className="text-xs text-gray-500">
+                                {daysOfWeek[0].toLocaleDateString('de-DE')} – {daysOfWeek[4].toLocaleDateString('de-DE')}
+                            </span>
                         </div>
-                    )}
-                    {isAdmin && (
-                        <button
-                            onClick={() => updateWeekStatus(year, weekNumber, isWeekOpen ? WeekStatus.LOCKED : WeekStatus.OPEN)}
-                            className="px-3 py-2 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600"
-                            title={isWeekOpen ? 'Diese Woche für Änderungen sperren' : 'Diese Woche wieder öffnen'}
+                        <button onClick={() => changeWeek('next')} className="p-2 rounded-full hover:bg-gray-200 transition" aria-label="Nächste Woche">
+                            <ChevronRightIcon className="h-6 w-6 text-gray-600" />
+                        </button>
+                    </div>
+
+                    {/* Rechts: Statuschip + Lock‑Toggle + Export + Admin */}
+                    <div className="flex items-center gap-2">
+                        <div
+                            className={`flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${
+                                isWeekOpen
+                                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                                    : 'text-amber-700 bg-amber-50 border-amber-200'
+                            }`}
+                            aria-live="polite"
                         >
-                            {isWeekOpen ? 'Woche sperren' : 'Woche öffnen'}
-                        </button>
-                    )}
-                    {isAdmin ? (
-                        <button onClick={() => setShowAdmin(true)} className="px-3 py-2 rounded-md bg-slate-700 text-white hover:bg-slate-800 transition shadow">
-                            Admin
-                        </button>
-                    ) : (
-                        <button 
-                            onClick={handleExport}
-                            className="bg-slate-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-slate-800 transition shadow"
-                        >
-                            Exportieren
-                        </button>
-                    )}
+                            {isWeekOpen ? 'Woche offen' : 'Woche gesperrt'}
+                        </div>
+
+                        {/* Konflikt-Badge */}
+                        {conflictCount > 0 && (
+                            <button
+                                onClick={() => setShowConflicts(true)}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-rose-50 text-rose-700 border border-rose-200"
+                                title="Konflikte und offene Anfragen"
+                            >
+                                <ExclamationIcon className="h-4 w-4" /> {conflictCount}
+                            </button>
+                        )}
+
+                        {/* Lock-Toggle (Admin) */}
+                        {isAdmin && (
+                            <button
+                                onClick={handleToggleWeek}
+                                title={isWeekOpen ? 'Diese Woche für Änderungen sperren' : 'Diese Woche wieder öffnen'}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600"
+                                aria-pressed={!isWeekOpen}
+                            >
+                                {isWeekOpen ? <LockClosedIcon className="h-4 w-4" /> : <LockOpenIcon className="h-4 w-4" />}
+                                <span>{isWeekOpen ? 'Sperren' : 'Öffnen'}</span>
+                            </button>
+                        )}
+
+                        {/* Undo-Button temporär nach Toggle */}
+                        {undoWeek && (
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await updateWeekStatus(undoWeek.year, undoWeek.weekNumber, undoWeek.prev);
+                                        setUndoWeek(null);
+                                        toast.success('Änderung rückgängig gemacht');
+                                    } catch (e: any) {
+                                        toast.error(e?.message || 'Fehler beim Rückgängig machen');
+                                    }
+                                }}
+                                className="text-xs px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50"
+                            >
+                                Rückgängig
+                            </button>
+                        )}
+
+                        {/* Export-Dropdown (für alle) */}
+                        <div className="relative" ref={exportWrap}>
+                            <button
+                                onClick={() => setExportOpen(v => !v)}
+                                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600"
+                                aria-haspopup="menu"
+                                aria-expanded={exportOpen}
+                            >
+                                <span>Export</span>
+                            </button>
+                            {exportOpen && (
+                                <div role="menu" className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 dark:bg-slate-800 dark:border-slate-700 rounded-md shadow-lg z-20 p-1">
+                                    <button role="menuitem" onClick={copyUrl} disabled={!calendarUrl} className="w-full text-left px-3 py-2 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-slate-700">Link kopieren</button>
+                                    {calendarUrl ? (
+                                        <a role="menuitem" href={calendarUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700">Öffnen</a>
+                                    ) : (
+                                        <button role="menuitem" onClick={handleExport} className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700">Erzeugen & Öffnen</button>
+                                    )}
+                                    {isAdmin && (
+                                        <button role="menuitem" onClick={handleRegenerate} className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700">Neu generieren</button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Admin-Modal Button */}
+                        {isAdmin && (
+                            <button onClick={() => setShowAdmin(true)} className="px-3 py-2 rounded-md bg-slate-700 text-white hover:bg-slate-800 transition shadow">
+                                Admin
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
