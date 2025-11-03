@@ -33,7 +33,7 @@ const AppContent: React.FC = () => {
                                 <div key={view} className="animate-slide-up">
                                     {view === 'schedule' && <ScheduleView />}
                                     {view === 'profile' && <Profile />}
-                                    {view === 'admin' && <AdminPanel />}
+                                    {view === 'admin' && (user?.role === Role.ADMIN ? <AdminPanel /> : <div className="text-sm text-red-600">Kein Zugriff</div>)}
                                 </div>
                             </main>
                         </div>
