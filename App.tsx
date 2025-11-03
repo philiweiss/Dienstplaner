@@ -27,7 +27,7 @@ const AppContent: React.FC = () => {
                     <ScheduleProvider>
                         <div className="min-h-screen bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
                             <Header currentView={view} setView={setView} />
-                            <main className="p-4 sm:p-6 lg:p-8">
+                            <main className="pt-16 pb-20 px-4 sm:px-6 lg:px-8 sm:pb-8">
                                 {view === 'schedule' && <ScheduleView />}
                                 {view === 'profile' && <Profile />}
                             </main>
