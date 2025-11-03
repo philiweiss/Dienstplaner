@@ -123,7 +123,22 @@ async function run() {
     CONSTRAINT fk_dn_created_by FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_dn_approved_by FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL
   );
-  `;
+
+  CREATE TABLE IF NOT EXISTS webauthn_credentials (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    cred_id VARBINARY(255) NOT NULL,
+    public_key VARBINARY(2048) NOT NULL,
+    counter BIGINT NOT NULL DEFAULT 0,
+    transports VARCHAR(255) NULL,
+    aaguid VARCHAR(64) NULL,
+    fmt VARCHAR(32) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_cred_id (cred_id),
+    KEY idx_user (user_id),
+    CONSTRAINT fk_webauthn_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+  `,
 
   await conn.query(sql);
 
