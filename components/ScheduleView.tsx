@@ -6,7 +6,6 @@ import { useToast } from '../hooks/useToast';
 import { Role, WeekStatus, User, AbsenceType, AbsencePart, Absence } from '../types';
 import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
 import { ChevronLeftIcon, ChevronRightIcon, LockClosedIcon, PlusIcon, TrashIcon, ExclamationIcon, LockOpenIcon } from './icons';
-import AdminModal from './AdminModal';
 
 // Lightweight Avatar component (no backend changes). Uses DiceBear by name as seed with initials fallback.
 const stringToColor = (str: string) => {
@@ -217,7 +216,6 @@ const AdminAssignControl: React.FC<{
 
 
 const ScheduleView: React.FC = () => {
-    const [showAdmin, setShowAdmin] = useState(false);
     const [showShiftManager, setShowShiftManager] = useState(false);
     const [showUserManager, setShowUserManager] = useState(false);
     const [newShift, setNewShift] = useState({ name: '', startTime: '08:00', endTime: '16:00', color: 'bg-gray-200 text-gray-800', minUsers: 1, maxUsers: 1 });
@@ -462,12 +460,6 @@ const ScheduleView: React.FC = () => {
                             )}
                         </div>
 
-                        {isAdmin && (
-                            <button onClick={() => setShowAdmin(true)}
-                                    className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow hover:opacity-95 active:scale-[0.98] transition">
-                                Admin
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>
@@ -475,10 +467,6 @@ const ScheduleView: React.FC = () => {
             {/* Spacer to prevent overlap with sticky week bar */}
             <div className="h-12 sm:h-14" aria-hidden="true" />
  
-             {/* Admin Modal */}
-            {isAdmin && (
-                <AdminModal open={showAdmin} onClose={() => setShowAdmin(false)} currentMonday={daysOfWeek[0]} />
-            )}
 
             {calLoading && (
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800 text-sm">

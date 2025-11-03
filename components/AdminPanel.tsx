@@ -32,38 +32,13 @@ const WeekManagement: React.FC = () => {
             updateWeekStatus(year, weekNumber, newStatus);
         };
 
-        const setOverride = async () => {
+        const setOverride = () => {
             if (shiftTypes.length === 0) {
                 alert('Keine Schichttypen vorhanden.');
                 return;
             }
-            const list = shiftTypes.map((s, idx) => `${idx + 1}: ${s.name}`).join('\n');
-            const sel = window.prompt(`Für welche Schicht soll die Wochen-Besetzung angepasst werden?\n${list}\nGib die Nummer ein:`);
-            if (!sel) return;
-            const idx = parseInt(sel, 10) - 1;
-            if (isNaN(idx) || idx < 0 || idx >= shiftTypes.length) {
-                alert('Ungültige Auswahl.');
-                return;
-            }
-            const st = shiftTypes[idx];
-            const minStr = window.prompt(`Min. Besetzung für KW ${weekNumber}/${year} (${st.name}). Leer lassen, um Basiswert zu verwenden.`, '');
-            const maxStr = window.prompt(`Max. Besetzung für KW ${weekNumber}/${year} (${st.name}). Leer lassen, um Basiswert zu verwenden.`, '');
-            const minUsers = minStr !== null && minStr.trim() !== '' ? Math.max(0, parseInt(minStr, 10) || 0) : undefined;
-            const maxUsers = maxStr !== null && maxStr.trim() !== '' ? Math.max(0, parseInt(maxStr, 10) || 0) : undefined;
-            if (minUsers === undefined && maxUsers === undefined) {
-                alert('Mindestens einen Wert (min oder max) angeben.');
-                return;
-            }
-            if (minUsers !== undefined && maxUsers !== undefined && maxUsers < minUsers) {
-                alert('Max darf nicht kleiner als Min sein.');
-                return;
-            }
-            try {
-                await updateWeekOverride({ year, weekNumber, shiftTypeId: st.id, minUsers, maxUsers });
-                alert('Override gespeichert.');
-            } catch (e: any) {
-                alert(`Fehler beim Speichern: ${e?.message || e}`);
-            }
+            setOverrideOpen(`${year}-${weekNumber}`);
+            setOverrideForm({ shiftTypeId: shiftTypes[0].id, minUsers: undefined, maxUsers: undefined });
         };
         
         const isCurrentWeek = offset === 0;
@@ -82,6 +57,54 @@ const WeekManagement: React.FC = () => {
                         {config.status === WeekStatus.OPEN ? <LockClosedIcon className="h-5 w-5" /> : <LockOpenIcon className="h-5 w-5" />}
                     </button>
                 </div>
+                {overrideOpen === `${year}-${weekNumber}` && (
+                    <div className="mt-3 p-3 rounded-md border border-slate-200 bg-white dark:bg-slate-900/60 dark:border-slate-700">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Schichttyp</label>
+                                <SelectList
+                                    ariaLabel={`Schichttyp für KW ${weekNumber}/${year}`}
+                                    options={shiftTypes.map(s => ({ label: s.name, value: s.id }))}
+                                    value={overrideForm.shiftTypeId}
+                                    onChange={(val) => setOverrideForm(f => ({...f, shiftTypeId: val}))}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Min</label>
+                                <input type="number" min={0} className="block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors"
+                                    value={overrideForm.minUsers ?? ''}
+                                    onChange={e => setOverrideForm(f => ({...f, minUsers: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value) || 0)}))}
+                                    placeholder="Basis" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Max</label>
+                                <input type="number" min={0} className="block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors"
+                                    value={overrideForm.maxUsers ?? ''}
+                                    onChange={e => setOverrideForm(f => ({...f, maxUsers: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value) || 0)}))}
+                                    placeholder="Basis" />
+                            </div>
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    const { shiftTypeId, minUsers, maxUsers } = overrideForm;
+                                    if (!shiftTypeId) { alert('Bitte Schichttyp wählen.'); return; }
+                                    if (minUsers !== undefined && maxUsers !== undefined && maxUsers < minUsers) { alert('Max darf nicht kleiner als Min sein.'); return; }
+                                    try {
+                                        await updateWeekOverride({ year, weekNumber, shiftTypeId, minUsers, maxUsers });
+                                        setOverrideOpen(null);
+                                        alert('Override gespeichert.');
+                                    } catch (e: any) {
+                                        alert(e?.message || 'Fehler beim Speichern');
+                                    }
+                                }}
+                                className="px-3 py-2 text-sm rounded-md bg-slate-700 text-white hover:bg-slate-800"
+                            >Speichern</button>
+                            <button type="button" onClick={() => setOverrideOpen(null)} className="px-3 py-2 text-sm rounded-md bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">Abbrechen</button>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     };
@@ -325,12 +348,13 @@ const AnalyticsPanel: React.FC = () => {
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Wer macht wie oft was?</h3>
                 <div className="flex flex-col md:flex-row md:items-end gap-3 mb-4">
                     <div>
-                        <label className="block text-sm text-gray-600 mb-1">Nutzer</label>
-                        <select className="border rounded p-2 min-w-[200px]" value={selectedUserId} onChange={e => setSelectedUserId(e.target.value)}>
-                            {users.map(u => (
-                                <option key={u.id} value={u.id}>{u.name}</option>
-                            ))}
-                        </select>
+                        <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">Nutzer</label>
+                        <SelectList
+                            ariaLabel="Nutzer wählen"
+                            options={users.map(u => ({ label: u.name, value: u.id }))}
+                            value={selectedUserId}
+                            onChange={setSelectedUserId}
+                        />
                     </div>
                 </div>
                 {uLoading ? (
@@ -416,15 +440,17 @@ const UserManagement: React.FC = () => {
         <div>
              <form onSubmit={handleAddUser} className="p-4 bg-gray-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-end transition-colors">
                 <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700">Benutzername</label>
-                    <input type="text" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm p-2" required />
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Benutzername</label>
+                    <input type="text" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" required />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700">Rolle</label>
-                    <select value={newUser.role} onChange={e => setNewUser({...newUser, role: e.target.value as Role})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm p-2">
-                        <option value={Role.USER}>User</option>
-                        <option value={Role.ADMIN}>Admin</option>
-                    </select>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rolle</label>
+                    <SelectList
+                        ariaLabel="Rolle wählen"
+                        options={[{label:'User', value: Role.USER},{label:'Admin', value: Role.ADMIN}]}
+                        value={newUser.role}
+                        onChange={(val) => setNewUser({...newUser, role: val as Role})}
+                    />
                 </div>
                 <div className="md:col-span-full">
                     <button type="submit" className="w-full md:w-auto bg-slate-700 text-white p-2 px-4 rounded-md font-semibold hover:bg-slate-800 flex items-center justify-center">

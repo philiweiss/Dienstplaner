@@ -162,24 +162,6 @@ const Login: React.FC = () => {
                             </div>
                         </div>
                         {error && <p className="text-red-500 text-sm">{error}</p>}
-                        <div className="space-y-3">
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${loading ? 'bg-slate-400' : 'bg-slate-700 hover:bg-slate-800'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500`}
-                            >
-                                {loading ? 'Prüfen…' : 'Weiter'}
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handlePasskeyLogin}
-                                disabled={loading || !username.trim()}
-                                className={`group relative w-full flex justify-center py-2 px-4 border text-sm font-medium rounded-md ${loading ? 'bg-slate-200 text-slate-500' : 'border-slate-300 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500`}
-                            >
-                                Mit Passkey anmelden
-                            </button>
-                            <p className="text-xs text-gray-500 text-center">Geben Sie zunächst Ihren Benutzernamen ein, um sich mit Passkey anzumelden.</p>
-                        </div>
                     </form>
                 )}
 
