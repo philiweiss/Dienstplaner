@@ -823,15 +823,15 @@ const ScheduleView: React.FC = () => {
         {/* Übergabe-Modal */}
         {transferModal?.open && user && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-                <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-4">
+                <div className="bg-white dark:bg-slate-800 dark:text-gray-100 rounded-lg shadow-xl w-full max-w-md p-4 border border-gray-200 dark:border-slate-700">
                     <h3 className="text-lg font-semibold mb-3">Schicht an anderen Nutzer übergeben</h3>
-                    <p className="text-sm text-gray-600 mb-3">Wähle den Empfänger aus. Dieser muss die Anfrage annehmen; anschließend muss ein Admin bestätigen.</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">Wähle den Empfänger aus. Dieser muss die Anfrage annehmen; anschließend muss ein Admin bestätigen.</p>
                     <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700">Empfänger</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Empfänger</label>
                         <select
                             value={transferModal.toUserId}
                             onChange={(e) => setTransferModal({ ...transferModal, toUserId: e.target.value })}
-                            className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2 bg-gray-50"
+                            className="block w-full text-sm rounded-md border border-gray-300 dark:border-slate-600 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 p-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100"
                         >
                             <option value="">Benutzer wählen...</option>
                             {users
@@ -842,7 +842,7 @@ const ScheduleView: React.FC = () => {
                         </select>
                     </div>
                     <div className="flex justify-end gap-2 mt-4">
-                        <button onClick={() => setTransferModal(null)} className="px-3 py-1.5 rounded bg-gray-200 hover:bg-gray-300">Abbrechen</button>
+                        <button onClick={() => setTransferModal(null)} className="px-3 py-1.5 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-slate-700 dark:text-gray-100 dark:hover:bg-slate-600">Abbrechen</button>
                         <button
                             onClick={async () => {
                                 if (!transferModal.toUserId) return;
@@ -855,7 +855,7 @@ const ScheduleView: React.FC = () => {
                                 }
                             }}
                             disabled={!transferModal.toUserId}
-                            className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800 disabled:bg-gray-300"
+                            className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800 disabled:bg-gray-300 dark:disabled:bg-slate-600/50"
                         >
                             Anfrage senden
                         </button>

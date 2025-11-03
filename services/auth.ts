@@ -42,3 +42,10 @@ export async function adminResetPassword(target: { userId?: string; username?: s
     body: JSON.stringify({ ...target, newPassword })
   });
 }
+
+export async function adminDeletePassword(userId: string): Promise<{ ok: boolean }> {
+  return jsonFetch(`/api/auth/admin/delete-password`, {
+    method: 'POST',
+    body: JSON.stringify({ userId })
+  });
+}
