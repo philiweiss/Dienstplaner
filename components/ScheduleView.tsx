@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useSchedule } from '../hooks/useSchedule';
 import { useToast } from '../hooks/useToast';
@@ -227,6 +227,10 @@ const ScheduleView: React.FC = () => {
     const [calendarUrl, setCalendarUrl] = useState<string | null>(null);
     const [calLoading, setCalLoading] = useState(false);
     const [calError, setCalError] = useState<string | null>(null);
+    const [exportOpen, setExportOpen] = useState(false);
+    const exportWrap = useRef<HTMLDivElement | null>(null);
+    const [undoWeek, setUndoWeek] = useState<{ year: number; weekNumber: number; prev: WeekStatus } | null>(null);
+    const [showConflicts, setShowConflicts] = useState(false);
     const { user } = useAuth();
     const toast = useToast();
     const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, handoversAdmin, refreshHandovers, requestHandover, respondHandover, approveHandover, declineHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, addAbsenceRange, removeAbsence, dayNotes, setDayNote, removeDayNote, updateWeekStatus, updateWeekOverride, addShiftType, updateShiftType, deleteShiftType, addUser, updateUser, deleteUser } = useSchedule();
