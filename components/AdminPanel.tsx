@@ -482,9 +482,9 @@ const UserManagement: React.FC = () => {
 };
 
 const AdminPanel: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'weeks' | 'shifts' | 'users' | 'handovers' | 'analytics'>('weeks');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'weeks' | 'shifts' | 'users' | 'handovers' | 'analytics'>('dashboard');
     
-    const TabButton: React.FC<{ tabId: 'weeks' | 'shifts' | 'users' | 'handovers' | 'analytics', children: React.ReactNode}> = ({tabId, children}) => {
+    const TabButton: React.FC<{ tabId: 'dashboard' | 'weeks' | 'shifts' | 'users' | 'handovers' | 'analytics', children: React.ReactNode}> = ({tabId, children}) => {
         const isActive = activeTab === tabId;
         return (
             <button onClick={() => setActiveTab(tabId)} className={`px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${isActive ? 'bg-slate-200 text-slate-800' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}>
@@ -494,7 +494,7 @@ const AdminPanel: React.FC = () => {
     };
 
     const { user } = useAuth();
-    const { handoversAdmin, refreshHandovers, approveHandover, declineHandover, shiftTypes, users } = useSchedule();
+    const { handoversAdmin, refreshHandovers, approveHandover, declineHandover, shiftTypes, users, weekConfigs } = useSchedule();
 
     useEffect(() => {
         if (user?.role === Role.ADMIN) {
@@ -535,57 +535,97 @@ const AdminPanel: React.FC = () => {
         );
     };
 
-    return (
-        <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Admin-Panel</h2>
-            <p className="text-gray-600">Verwalten Sie hier die Einstellungen des Dienstplaners.</p>
-
-            {/* Admin-Header Hinweis wie beim User: Übergaben, die auf Bestätigung warten */}
-            {user?.role === Role.ADMIN && handoversAdmin.length > 0 && (
-                <div className="mt-3 mb-6 p-3 bg-amber-50 border border-amber-200 rounded-md">
-                    <p className="font-semibold text-amber-800 mb-2">
-                        Übergaben warten auf Bestätigung ({handoversAdmin.length})
-                    </p>
-                    <div className="space-y-2">
-                        {handoversAdmin.slice(0, 3).map(h => {
-                            const st = shiftTypes.find(s => s.id === h.shiftTypeId);
-                            const fromUser = users.find(u => u.id === h.fromUserId);
-                            const toUser = users.find(u => u.id === h.toUserId);
-                            return (
-                                <div key={h.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm">
-                                    <span>
-                                        {fromUser?.name} → {toUser?.name}: {st?.name} am {new Date(h.date).toLocaleDateString('de-DE')}
-                                    </span>
-                                    <div className="flex gap-2 mt-2 sm:mt-0">
-                                        <button onClick={() => user && declineHandover(h.id, user.id)} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">Ablehnen</button>
-                                        <button onClick={() => user && approveHandover(h.id, user.id)} className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">Bestätigen</button>
+    // Dashboard view (landing)
+    const Dashboard: React.FC = () => {
+        const openWeeks = weekConfigs.filter(w => w.status === WeekStatus.OPEN).length;
+        const lockedWeeks = weekConfigs.filter(w => w.status === WeekStatus.LOCKED).length;
+        return (
+            <div className="space-y-6">
+                {handoversAdmin.length > 0 && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
+                        <p className="font-semibold text-amber-800 mb-2">
+                            Übergaben warten auf Bestätigung ({handoversAdmin.length})
+                        </p>
+                        <div className="space-y-2">
+                            {handoversAdmin.slice(0, 3).map(h => {
+                                const st = shiftTypes.find(s => s.id === h.shiftTypeId);
+                                const fromUser = users.find(u => u.id === h.fromUserId);
+                                const toUser = users.find(u => u.id === h.toUserId);
+                                return (
+                                    <div key={h.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm">
+                                        <span>
+                                            {fromUser?.name} → {toUser?.name}: {st?.name} am {new Date(h.date).toLocaleDateString('de-DE')}
+                                        </span>
+                                        <div className="flex gap-2 mt-2 sm:mt-0">
+                                            <button onClick={() => user && declineHandover(h.id, user.id)} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">Ablehnen</button>
+                                            <button onClick={() => user && approveHandover(h.id, user.id)} className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">Bestätigen</button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
+                        {handoversAdmin.length > 3 && (
+                            <p className="text-xs text-amber-800 mt-2">Mehr unter „Übergaben“.</p>
+                        )}
                     </div>
-                    {handoversAdmin.length > 3 && (
-                        <p className="text-xs text-amber-800 mt-2">Weitere Einträge finden Sie im Tab „Übergaben“.</p>
-                    )}
-                </div>
-            )}
-            
-            <div className="mb-6 border-b border-gray-200">
-                <nav className="-mb-px flex space-x-2 sm:space-x-4 overflow-x-auto" aria-label="Tabs">
-                    <TabButton tabId="weeks">Wochen</TabButton>
-                    <TabButton tabId="shifts">Schichten</TabButton>
-                    <TabButton tabId="users">Nutzer</TabButton>
-                    <TabButton tabId="handovers">Übergaben</TabButton>
-                    <TabButton tabId="analytics">Auswertungen</TabButton>
-                </nav>
-            </div>
+                )}
 
-            <div>
-                {activeTab === 'weeks' && <WeekManagement />}
-                {activeTab === 'shifts' && <ShiftManagement />}
-                {activeTab === 'users' && <UserManagement />}
-                {activeTab === 'handovers' && <HandoversManagement />}
-                {activeTab === 'analytics' && <AnalyticsPanel />}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                        <div className="text-sm text-slate-500">Ausstehende Übergaben</div>
+                        <div className="text-2xl font-bold text-slate-800">{handoversAdmin.length}</div>
+                        <button onClick={() => setActiveTab('handovers')} className="mt-2 text-sm text-slate-600 hover:text-slate-900">Ansehen →</button>
+                    </div>
+                    <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                        <div className="text-sm text-slate-500">Nutzer</div>
+                        <div className="text-2xl font-bold text-slate-800">{users.length}</div>
+                        <button onClick={() => setActiveTab('users')} className="mt-2 text-sm text-slate-600 hover:text-slate-900">Verwalten →</button>
+                    </div>
+                    <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                        <div className="text-sm text-slate-500">Schichttypen</div>
+                        <div className="text-2xl font-bold text-slate-800">{shiftTypes.length}</div>
+                        <button onClick={() => setActiveTab('shifts')} className="mt-2 text-sm text-slate-600 hover:text-slate-900">Bearbeiten →</button>
+                    </div>
+                    <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
+                        <div className="text-sm text-slate-500">Wochen (offen/gesperrt)</div>
+                        <div className="text-2xl font-bold text-slate-800">{openWeeks}/{lockedWeeks}</div>
+                        <button onClick={() => setActiveTab('weeks')} className="mt-2 text-sm text-slate-600 hover:text-slate-900">Steuern →</button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="bg-white p-0 sm:p-0 rounded-lg shadow-lg overflow-hidden">
+            <div className="flex">
+                {/* Sidebar */}
+                <aside className="w-56 shrink-0 border-r border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/40 p-3" aria-label="Admin Navigation">
+                    <h2 className="px-2 pb-2 text-sm font-semibold text-slate-500 uppercase tracking-wide">Admin</h2>
+                    <nav className="flex flex-col gap-1">
+                        <button onClick={() => setActiveTab('dashboard')} className={`text-left px-2 py-2 rounded-md text-sm ${activeTab==='dashboard'?'bg-white shadow-sm text-slate-900':'text-slate-600 hover:bg-white/60'}`}>Dashboard</button>
+                        <button onClick={() => setActiveTab('weeks')} className={`text-left px-2 py-2 rounded-md text-sm ${activeTab==='weeks'?'bg-white shadow-sm text-slate-900':'text-slate-600 hover:bg-white/60'}`}>Wochen</button>
+                        <button onClick={() => setActiveTab('handovers')} className={`text-left px-2 py-2 rounded-md text-sm ${activeTab==='handovers'?'bg-white shadow-sm text-slate-900':'text-slate-600 hover:bg-white/60'}`}>Übergaben</button>
+                        <button onClick={() => setActiveTab('users')} className={`text-left px-2 py-2 rounded-md text-sm ${activeTab==='users'?'bg-white shadow-sm text-slate-900':'text-slate-600 hover:bg-white/60'}`}>Nutzer</button>
+                        <button onClick={() => setActiveTab('shifts')} className={`text-left px-2 py-2 rounded-md text-sm ${activeTab==='shifts'?'bg-white shadow-sm text-slate-900':'text-slate-600 hover:bg-white/60'}`}>Schichten</button>
+                        <button onClick={() => setActiveTab('analytics')} className={`text-left px-2 py-2 rounded-md text-sm ${activeTab==='analytics'?'bg-white shadow-sm text-slate-900':'text-slate-600 hover:bg-white/60'}`}>Auswertungen</button>
+                    </nav>
+                </aside>
+
+                {/* Content */}
+                <main className="flex-1 p-4 sm:p-6">
+                    <div className="mb-4">
+                        <h1 className="text-2xl font-bold text-gray-800">Admin‑Panel</h1>
+                        <p className="text-gray-600">Alles Wichtige an einem Ort.</p>
+                    </div>
+
+                    {activeTab === 'dashboard' && <Dashboard />}
+                    {activeTab === 'weeks' && <WeekManagement />}
+                    {activeTab === 'shifts' && <ShiftManagement />}
+                    {activeTab === 'users' && <UserManagement />}
+                    {activeTab === 'handovers' && <HandoversManagement />}
+                    {activeTab === 'analytics' && <AnalyticsPanel />}
+                </main>
             </div>
         </div>
     );

@@ -3,7 +3,9 @@ import { pool } from '../db.js';
 import { z } from 'zod';
 import type { RowDataPacket } from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
-import { signToken } from '../middleware/auth.js';
+import { signToken, requireAuth } from '../middleware/auth.js';
+import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
+import { randomUUID } from 'crypto';
 
 const router = Router();
 
@@ -136,15 +138,171 @@ router.post('/change-password', async (req, res) => {
   }
 });
 
-// WebAuthn passkey registration stubs (to be implemented)
-router.post('/passkey/register/start', async (_req, res) => {
-  // TODO: Implement proper WebAuthn options generation and session binding
-  res.json({ ok: true, message: 'WebAuthn-Registrierung bald verfügbar' });
+// WebAuthn Passkey implementation
+const RP_ID = process.env.RP_ID;
+const RP_NAME = process.env.RP_NAME || 'IT-Dienstplaner';
+const RP_ORIGIN = process.env.RP_ORIGIN; // optional; if not provided, derive from request
+
+// Simple in-memory challenge store (non-persistent; fine for dev)
+const regChallenges = new Map<string, string>(); // key: userId -> challenge
+const authChallenges = new Map<string, string>(); // key: userId -> challenge
+
+function getOrigin(req: any): string | null {
+  if (RP_ORIGIN) return RP_ORIGIN;
+  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const proto = (req.headers['x-forwarded-proto'] || req.protocol || 'http').toString();
+  if (!host) return null;
+  return `${proto}://${host}`;
+}
+
+router.post('/passkey/register/start', requireAuth, async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
+    const rpID = RP_ID || (req.hostname || '').split(':')[0];
+
+    // Exclude existing credentials
+    const [rows]: any = await pool.query('SELECT cred_id FROM webauthn_credentials WHERE user_id=?', [userId]);
+    const excludeCredentials = (rows || []).map((r: any) => ({ id: Buffer.from(r.cred_id), type: 'public-key' as const }));
+
+    const options = await generateRegistrationOptions({
+      rpName: RP_NAME,
+      rpID,
+      userID: userId,
+      userName: req.user.name,
+      attestationType: 'none',
+      authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
+      excludeCredentials,
+    });
+
+    regChallenges.set(userId, options.challenge);
+    res.json(options);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Passkey-Registrierung (Start) fehlgeschlagen' });
+  }
 });
 
-router.post('/passkey/register/finish', async (_req, res) => {
-  // TODO: Implement proper WebAuthn attestation verification and storage
-  res.json({ ok: true, message: 'WebAuthn-Registrierung bald verfügbar' });
+router.post('/passkey/register/finish', requireAuth, async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+    const userId = req.user.id;
+    const expectedChallenge = regChallenges.get(userId);
+    if (!expectedChallenge) return res.status(400).json({ error: 'Keine Challenge gefunden. Bitte erneut starten.' });
+
+    const rpID = RP_ID || (req.hostname || '').split(':')[0];
+    const origin = getOrigin(req);
+    if (!origin) return res.status(400).json({ error: 'Origin konnte nicht ermittelt werden' });
+
+    const verification = await verifyRegistrationResponse({
+      response: req.body,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+    });
+
+    const { verified, registrationInfo } = verification as any;
+    if (!verified || !registrationInfo) return res.status(400).json({ error: 'Verifikation fehlgeschlagen' });
+
+    const { credentialPublicKey, credentialID, counter, fmt, aaguid } = registrationInfo;
+
+    await pool.query(
+      'INSERT INTO webauthn_credentials (id, user_id, cred_id, public_key, counter, transports, aaguid, fmt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [randomUUID(), userId, Buffer.from(credentialID), Buffer.from(credentialPublicKey), counter || 0, null, aaguid || null, fmt || null]
+    );
+
+    regChallenges.delete(userId);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Passkey-Registrierung (Abschluss) fehlgeschlagen' });
+  }
+});
+
+// Start login with passkey: expects { username }
+router.post('/passkey/login/start', async (req, res) => {
+  try {
+    const parse = UsernameSchema.safeParse(req.body);
+    if (!parse.success) return res.status(400).json({ error: parse.error.format() });
+    const { username } = parse.data;
+    const [rows] = await pool.query<UserRow[]>('SELECT id, name, role FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
+    const user: UserRow | null = Array.isArray(rows) && rows.length ? (rows[0] as UserRow) : null;
+    if (!user) return res.status(404).json({ error: 'Benutzer existiert nicht' });
+
+    const [creds]: any = await pool.query('SELECT cred_id FROM webauthn_credentials WHERE user_id=?', [user.id]);
+    const allowCredentials = (creds || []).map((r: any) => ({ id: Buffer.from(r.cred_id), type: 'public-key' as const }));
+
+    const rpID = RP_ID || (req.hostname || '').split(':')[0];
+    const options = await generateAuthenticationOptions({
+      rpID,
+      allowCredentials,
+      userVerification: 'preferred',
+    });
+
+    authChallenges.set(user.id, options.challenge);
+    res.json({ ...options, userId: user.id, user: { id: user.id, name: user.name, role: user.role } });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Passkey-Login (Start) fehlgeschlagen' });
+  }
+});
+
+// Finish passkey login: expects { userId, credential }
+router.post('/passkey/login/finish', async (req, res) => {
+  try {
+    const schema = z.object({
+      userId: z.string().uuid(),
+      credential: z.any(),
+    });
+    const parse = schema.safeParse(req.body);
+    if (!parse.success) return res.status(400).json({ error: parse.error.format() });
+    const { userId, credential } = parse.data as any;
+
+    const expectedChallenge = authChallenges.get(userId);
+    if (!expectedChallenge) return res.status(400).json({ error: 'Keine Challenge gefunden. Bitte erneut starten.' });
+
+    const [users] = await pool.query<UserRow[]>('SELECT id, name, role FROM users WHERE id=? LIMIT 1', [userId]);
+    const user = Array.isArray(users) && users.length ? (users[0] as UserRow) : null;
+    if (!user) return res.status(404).json({ error: 'Benutzer existiert nicht' });
+
+    // Find authenticator by credential ID
+    const credIdBuf = Buffer.from(credential.rawId ? Buffer.from(credential.rawId, 'base64url') : Buffer.alloc(0));
+    const [creds]: any = await pool.query('SELECT cred_id, public_key, counter FROM webauthn_credentials WHERE user_id=? AND cred_id=? LIMIT 1', [userId, credIdBuf]);
+    const cred = Array.isArray(creds) && creds.length ? creds[0] : null;
+    if (!cred) return res.status(400).json({ error: 'Credential nicht gefunden' });
+
+    const rpID = RP_ID || (req.hostname || '').split(':')[0];
+    const origin = getOrigin(req);
+    if (!origin) return res.status(400).json({ error: 'Origin konnte nicht ermittelt werden' });
+
+    const verification = await verifyAuthenticationResponse({
+      response: credential,
+      expectedChallenge,
+      expectedOrigin: origin,
+      expectedRPID: rpID,
+      authenticator: {
+        credentialID: Buffer.from(cred.cred_id),
+        credentialPublicKey: Buffer.from(cred.public_key),
+        counter: Number(cred.counter) || 0,
+        transports: undefined,
+      },
+    });
+
+    const { verified, authenticationInfo } = verification as any;
+    if (!verified || !authenticationInfo) return res.status(401).json({ error: 'Verifikation fehlgeschlagen' });
+
+    // Update signature counter
+    await pool.query('UPDATE webauthn_credentials SET counter=? WHERE user_id=? AND cred_id=?', [authenticationInfo.newCounter || authenticationInfo.counter || 0, userId, Buffer.from(cred.cred_id)]);
+
+    const token = signToken({ id: user.id, name: user.name, role: user.role });
+    try { await pool.query('UPDATE users SET last_seen_changes_at = NOW(), last_login_at = NOW() WHERE id=?', [user.id]); } catch (_) {}
+
+    authChallenges.delete(userId);
+    res.json({ user: { id: user.id, name: user.name, role: user.role }, token });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Passkey-Login (Abschluss) fehlgeschlagen' });
+  }
 });
 
 // ADMIN: Reset password for a user (temporary: not protected yet)

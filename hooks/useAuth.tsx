@@ -11,6 +11,8 @@ interface AuthContextType {
     loginWithPassword: (username: string, password: string) => Promise<boolean>;
     // Complete initial setup: set password and log the user in
     setInitialPasswordAndLogin: (username: string, password: string) => Promise<boolean>;
+    // Complete login using externally obtained token (e.g., Passkey)
+    loginWithToken: (user: User, token: string) => void;
     logout: () => void;
 }
 
@@ -60,8 +62,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return false;
     };
 
+    const loginWithToken = (u: User, token: string) => {
+        setUser(u);
+        setAuthToken(token);
+    };
+
     const logout = () => {
         setUser(null);
+        setAuthToken(null);
     };
 
     return (
