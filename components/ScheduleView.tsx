@@ -355,6 +355,11 @@ const ScheduleView: React.FC = () => {
                 </div>
             </div>
 
+            {/* Admin Modal */}
+            {isAdmin && (
+                <AdminModal open={showAdmin} onClose={() => setShowAdmin(false)} currentMonday={daysOfWeek[0]} daysOfWeek={daysOfWeek} />
+            )}
+
             {calLoading && (
                 <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md text-blue-800 text-sm">
                     Kalender-Link wird erzeugt...
