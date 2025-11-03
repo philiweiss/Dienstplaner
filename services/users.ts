@@ -22,3 +22,15 @@ export async function updateUser(id: string, fields: { name?: string; role?: Rol
     body: JSON.stringify(fields)
   });
 }
+
+export interface NextShiftItem {
+  date: string; // YYYY-MM-DD
+  shiftTypeId: string;
+  shiftName: string;
+  startTime: string; // HH:mm
+  endTime: string; // HH:mm
+}
+
+export async function getNextShifts(userId: string, limit = 5): Promise<NextShiftItem[]> {
+  return jsonFetch<NextShiftItem[]>(`/api/users/${encodeURIComponent(userId)}/next-shifts?limit=${encodeURIComponent(String(limit))}`);
+}

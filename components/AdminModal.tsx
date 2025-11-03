@@ -3,7 +3,9 @@ import { useAuth } from '../hooks/useAuth';
 import { useSchedule } from '../hooks/useSchedule';
 import { useToast } from '../hooks/useToast';
 import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
-import { ShiftType } from '../types';
+import { getNextShifts, type NextShiftItem } from '../services/users';
+import { adminDeletePassword } from '../services/auth';
+import { ShiftType, User } from '../types';
 
 // Small helpers reused from ScheduleView context
 const getWeekNumber = (d: Date): [number, number] => {
