@@ -8,8 +8,8 @@ import { useTheme } from '../hooks/useTheme';
 import { getUnreadChangesCount, getRecentChanges, markChangesSeen, formatChangeText, type ChangeItem } from '../services/changes';
 
 interface HeaderProps {
-    currentView: 'schedule' | 'profile';
-    setView: (view: 'schedule' | 'profile') => void;
+    currentView: 'schedule' | 'profile' | 'admin';
+    setView: (view: 'schedule' | 'profile' | 'admin') => void;
 }
 
 const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
@@ -61,6 +61,12 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
                                     <span className="hidden sm:inline">Dienstplan</span>
                                     <span className="sm:hidden">Plan</span>
                                 </a>
+                                {user.role === Role.ADMIN && (
+                                    <a onClick={() => setView('admin')} className={`${currentView === 'admin' ? 'bg-white text-slate-900 dark:bg-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-white/50 dark:hover:text-white dark:hover:bg-slate-800/80'} flex items-center px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors ml-1`}>
+                                        <CogIcon className="h-5 w-5 mr-1.5" />
+                                        <span>Admin</span>
+                                    </a>
+                                )}
                                 <a onClick={() => setView('profile')} className={`${currentView === 'profile' ? 'bg-white text-slate-900 dark:bg-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-white/50 dark:hover:text-white dark:hover:bg-slate-800/80'} flex items-center px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors ml-1`}>
                                     <span className="h-5 w-5 mr-1.5 inline-flex items-center justify-center rounded-full bg-slate-600 text-white text-[10px] leading-none">P</span>
                                     <span>Profil</span>

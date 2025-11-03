@@ -9,8 +9,10 @@ import Login from './components/Login';
 import Header from './components/Header';
 import ScheduleView from './components/ScheduleView';
 import Profile from './components/Profile';
+import AdminPanel from './components/AdminPanel';
+import { Role } from './types';
 
-type View = 'schedule' | 'profile';
+type View = 'schedule' | 'profile' | 'admin';
 
 const AppContent: React.FC = () => {
     const { user } = useAuth();
@@ -31,6 +33,7 @@ const AppContent: React.FC = () => {
                                 <div key={view} className="animate-slide-up">
                                     {view === 'schedule' && <ScheduleView />}
                                     {view === 'profile' && <Profile />}
+                                    {view === 'admin' && <AdminPanel />}
                                 </div>
                             </main>
                         </div>
