@@ -88,7 +88,7 @@ const Login: React.FC = () => {
                     <form className="mt-8 space-y-6" onSubmit={handleUsernameSubmit}>
                         <div className="rounded-md shadow-sm -space-y-px">
                             <div>
-                                <label htmlFor="username" className="sr-only">Benutzername</label>
+                                <label htmlFor="username" className="sr-only">Voller Name</label>
                                 <input
                                     id="username"
                                     name="username"
@@ -97,7 +97,7 @@ const Login: React.FC = () => {
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-slate-600 placeholder-gray-500 dark:placeholder-slate-400 text-gray-900 dark:text-gray-100 rounded-t-md bg-white dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 focus:z-10 sm:text-sm transition-colors"
-                                    placeholder="Benutzername (z.B. Alice Admin)"
+                                    placeholder="Benutzername (z.B. Noah Farras)"
                                     disabled={loading}
                                 />
                             </div>
