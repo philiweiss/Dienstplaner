@@ -12,7 +12,7 @@ export const Toast: React.FC<{ toast: ToastItem; onClose: (id: string) => void }
   const style = variantStyles[toast.variant] || variantStyles.info;
   return (
     <div
-      className={`min-w-[240px] max-w-sm shadow-lg rounded-md border p-3 mb-2 flex items-start gap-3 ${style} transition`}
+      className={`min-w-[240px] max-w-sm shadow-lg rounded-md border p-3 mb-2 flex items-start gap-3 ${style} animate-toast-in transition-base`}
       role="alert"
     >
       <div className="flex-1">

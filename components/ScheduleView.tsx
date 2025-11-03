@@ -472,7 +472,10 @@ const ScheduleView: React.FC = () => {
                 </div>
             </div>
 
-            {/* Admin Modal */}
+            {/* Spacer to prevent overlap with sticky week bar */}
+            <div className="h-12 sm:h-14" aria-hidden="true" />
+ 
+             {/* Admin Modal */}
             {isAdmin && (
                 <AdminModal open={showAdmin} onClose={() => setShowAdmin(false)} currentMonday={daysOfWeek[0]} />
             )}
