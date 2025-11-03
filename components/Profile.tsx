@@ -81,6 +81,19 @@ const Profile: React.FC = () => {
   const [birthday, setBirthday] = useState<string>('');
   const [anniversary, setAnniversary] = useState<string>('');
 
+  const initials = useMemo(() => {
+    const n = user?.name || '';
+    return n
+      .split(' ')
+      .map(p => p[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join('')
+      .toUpperCase();
+  }, [user?.name]);
+
+  const weeklyTotals = useMemo(() => weekly?.map(w => w.total) ?? [], [weekly]);
+
   useEffect(() => {
     setBirthday(me?.birthday ?? '');
     setAnniversary(me?.anniversary ?? '');
