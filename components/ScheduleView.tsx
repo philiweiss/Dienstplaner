@@ -1016,7 +1016,7 @@ const ScheduleView: React.FC = () => {
                             <select
                                 value={absenceModal.part}
                                 onChange={(e) => setAbsenceModal(m => m ? { ...m, part: e.target.value as AbsencePart } : m)}
-                                className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2 bg-gray-50"
+                                className="block w-full text-sm rounded-md border border-gray-300 dark:border-slate-600 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 p-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100"
                             >
                                 <option value="FULL">Ganzer Tag</option>
                                 <option value="AM">Vormittag</option>
@@ -1024,26 +1024,26 @@ const ScheduleView: React.FC = () => {
                             </select>
                         </div>
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700">Notiz (optional)</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Notiz (optional)</label>
                             <input
                                 type="text"
                                 value={absenceModal.note}
                                 onChange={(e) => setAbsenceModal(m => m ? { ...m, note: e.target.value } : m)}
-                                className="block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 p-2"
+                                className="block w-full text-sm rounded-md border border-gray-300 dark:border-slate-600 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 p-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100"
                                 placeholder="z. B. Arztbesuch, Fortbildung…"
                             />
                         </div>
                     </div>
 
                     {absenceModal.result && (
-                        <div className="mt-3 p-2 rounded border text-sm bg-slate-50 border-slate-200 text-slate-800">
+                        <div className="mt-3 p-2 rounded border text-sm bg-slate-50 border-slate-200 text-slate-800 dark:bg-slate-900/50 dark:border-slate-700 dark:text-slate-100">
                             <div className="font-semibold mb-1">Ergebnis</div>
                             <div className="flex flex-wrap gap-2">
-                                <span className="px-2 py-0.5 rounded bg-green-100 text-green-800 border border-green-200">angelegt: {absenceModal.result.created.length}</span>
-                                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">übersprungen: {absenceModal.result.skipped.length}</span>
+                                <span className="px-2 py-0.5 rounded bg-green-100 text-green-800 border border-green-200 dark:bg-green-900/30 dark:text-green-200 dark:border-green-800">angelegt: {absenceModal.result.created.length}</span>
+                                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200 dark:bg-amber-900/30 dark:text-amber-200 dark:border-amber-800">übersprungen: {absenceModal.result.skipped.length}</span>
                             </div>
                             {absenceModal.result.skipped.length > 0 && (
-                                <ul className="mt-2 list-disc pl-5 text-xs text-slate-700">
+                                <ul className="mt-2 list-disc pl-5 text-xs text-slate-700 dark:text-slate-300">
                                     {absenceModal.result.skipped.map(s => (
                                         <li key={s.date}>{new Date(s.date).toLocaleDateString('de-DE')} – {s.reason === 'ASSIGNED' ? 'bereits in Schicht' : s.reason === 'DUPLICATE' ? 'bereits vorhanden' : 'Fehler'}</li>
                                     ))}
@@ -1053,7 +1053,7 @@ const ScheduleView: React.FC = () => {
                     )}
 
                     <div className="flex justify-between items-center gap-2 mt-4">
-                        <button onClick={() => setAbsenceModal(null)} className="px-3 py-1.5 rounded bg-gray-200 hover:bg-gray-300">Schließen</button>
+                        <button onClick={() => setAbsenceModal(null)} className="px-3 py-1.5 rounded bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-100 dark:hover:bg-slate-600">Schließen</button>
                         <div className="flex gap-2">
                             <button
                                 onClick={async () => {
