@@ -47,69 +47,75 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView }) => {
     const inactiveClasses = "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white";
 
     return (
-        <header className="bg-white border-b border-slate-200 dark:bg-slate-800 dark:border-slate-700 shadow-md">
+        <header className="fixed top-0 inset-x-0 z-40 border-b border-slate-200/60 dark:border-slate-700/60 bg-white/70 dark:bg-slate-900/60 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex items-center justify-between h-16">
-                    <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                           <h1 className="text-xl font-bold text-slate-900 dark:text-white">IT-Dienstplaner</h1>
+                <div className="flex items-center justify-between h-14">
+                    <div className="flex items-center gap-6">
+                        <div className="flex-shrink-0 leading-none select-none">
+                           <h1 className="text-lg sm:text-xl font-semibold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-300">IT‑Dienstplaner</h1>
                         </div>
-                        <nav className="hidden md:block ml-10">
-                            <div className="flex items-baseline space-x-4">
-                                <a onClick={() => setView('schedule')} className={`${navItemClasses} ${currentView === 'schedule' ? activeClasses : inactiveClasses}`}>
-                                    <CalendarIcon className="h-5 w-5 mr-2" />
-                                    Dienstplan
+                        <nav className="hidden md:block">
+                            <div className="flex items-center rounded-full bg-slate-100/60 dark:bg-slate-800/60 p-1">
+                                <a onClick={() => setView('schedule')} className={`${currentView === 'schedule' ? 'bg-white text-slate-900 dark:bg-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-white/50 dark:hover:text-white dark:hover:bg-slate-800/80'} flex items-center px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors`}>
+                                    <CalendarIcon className="h-5 w-5 mr-1.5" />
+                                    <span className="hidden sm:inline">Dienstplan</span>
+                                    <span className="sm:hidden">Plan</span>
                                 </a>
-                                <a onClick={() => setView('profile')} className={`${navItemClasses} ${currentView === 'profile' ? activeClasses : inactiveClasses}`}>
-                                    <span className="h-5 w-5 mr-2 inline-block rounded-full bg-slate-600 text-white text-xs leading-5 text-center">P</span>
-                                    Profil
+                                <a onClick={() => setView('profile')} className={`${currentView === 'profile' ? 'bg-white text-slate-900 dark:bg-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 hover:bg-white/50 dark:hover:text-white dark:hover:bg-slate-800/80'} flex items-center px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors ml-1`}>
+                                    <span className="h-5 w-5 mr-1.5 inline-flex items-center justify-center rounded-full bg-slate-600 text-white text-[10px] leading-none">P</span>
+                                    <span>Profil</span>
                                 </a>
                             </div>
                         </nav>
                     </div>
-                    <div className="flex items-center gap-4">
+
+                    <div className="flex items-center gap-2 sm:gap-3">
                         {/* Compact stats */}
-                        <div className="hidden lg:flex items-center gap-2">
-                            <span className="text-slate-700 dark:text-slate-200 text-sm">Schichten:</span>
-                            <span className="px-2 py-0.5 rounded bg-slate-200 text-slate-900 dark:bg-slate-700 dark:text-white text-sm font-semibold" title="Gesamtzahl deiner Schichten">
+                        <div className="hidden lg:flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                            <span className="hidden xl:inline">Schichten</span>
+                            <span className="mx-1 hidden xl:inline opacity-30">•</span>
+                            <span className="inline-flex items-center px-2 h-6 rounded-full bg-slate-100/80 dark:bg-slate-800/80 text-slate-900 dark:text-white font-medium" title="Gesamtzahl deiner Schichten">
                                 {loading ? '…' : (stats?.total ?? 0)}
                             </span>
                             {stats?.byShiftType?.map((s) => (
-                                <span key={s.shiftTypeId} className={`px-2 py-0.5 rounded text-xs font-medium ${s.color}`} title={`${s.name}: ${s.count}`}>
+                                <span key={s.shiftTypeId} className={`inline-flex items-center h-6 px-2 rounded-full text-[11px] font-medium ${s.color}`} title={`${s.name}: ${s.count}`}>
                                     {s.count}
                                 </span>
                             ))}
                         </div>
-                        <div className="hidden sm:block">
-                             <span className="text-slate-700 dark:text-white text-sm mr-1">
-                                Angemeldet als: <span className="font-semibold">{user.name}</span> ({user.role})
-                            </span>
+
+                        <div className="hidden sm:block text-sm text-slate-600 dark:text-slate-300">
+                            <span className="align-middle">{user.name}</span>
+                            <span className="mx-1 opacity-30">·</span>
+                            <span className="uppercase text-[11px] tracking-wide text-slate-500 dark:text-slate-400">{user.role}</span>
                         </div>
-                        <button onClick={toggleTheme} className="p-2 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 focus:ring-slate-500" title={theme === 'dark' ? 'Helles Design aktivieren' : 'Dunkles Design aktivieren'}>
-                            {theme === 'dark' ? <SunIcon className="h-6 w-6" /> : <MoonIcon className="h-6 w-6" />}
+
+                        <button onClick={toggleTheme} className="p-2 rounded-full text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/50" title={theme === 'dark' ? 'Helles Design aktivieren' : 'Dunkles Design aktivieren'}>
+                            {theme === 'dark' ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
                         </button>
-                        <button onClick={logout} className="p-2 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 focus:ring-slate-500" title="Abmelden">
-                            <LogoutIcon className="h-6 w-6" />
+                        <button onClick={logout} className="p-2 rounded-full text-slate-600 hover:text-slate-900 hover:bg-black/5 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/50" title="Abmelden">
+                            <LogoutIcon className="h-5 w-5" />
                         </button>
                     </div>
                 </div>
             </div>
-             {/* Mobile Nav */}
-            <nav className="md:hidden bg-slate-800 border-t border-slate-700">
-                <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 flex justify-around">
-                    <a onClick={() => setView('schedule')} className={`${navItemClasses} w-full justify-center ${currentView === 'schedule' ? 'bg-slate-900 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>
-                        <CalendarIcon className="h-5 w-5 mr-2" />
-                        Plan
+
+            {/* Mobile Nav */}
+            <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-slate-200/60 dark:border-slate-700/60 bg-white/80 dark:bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:backdrop-blur-md">
+                <div className="flex items-stretch justify-around">
+                    <a onClick={() => setView('schedule')} className={`flex-1 flex flex-col items-center justify-center py-2 text-xs ${currentView === 'schedule' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'} active:opacity-80`}>
+                        <CalendarIcon className="h-5 w-5 mb-0.5" />
+                        <span>Plan</span>
                     </a>
                     {user.role === Role.ADMIN && (
-                        <a onClick={() => setView('admin')} className={`${navItemClasses} w-full justify-center ${currentView === 'admin' ? 'bg-slate-900 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>
-                            <CogIcon className="h-5 w-5 mr-2" />
-                            Admin
+                        <a onClick={() => setView('admin')} className={`flex-1 flex flex-col items-center justify-center py-2 text-xs ${currentView === 'admin' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'} active:opacity-80`}>
+                            <CogIcon className="h-5 w-5 mb-0.5" />
+                            <span>Admin</span>
                         </a>
                     )}
-                    <a onClick={() => setView('profile')} className={`${navItemClasses} w-full justify-center ${currentView === 'profile' ? 'bg-slate-900 text-white' : 'text-slate-300 hover:bg-slate-700'}`}>
-                        <span className="h-5 w-5 mr-2 inline-block rounded-full bg-slate-600 text-white text-xs leading-5 text-center">P</span>
-                        Profil
+                    <a onClick={() => setView('profile')} className={`flex-1 flex flex-col items-center justify-center py-2 text-xs ${currentView === 'profile' ? 'text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400'} active:opacity-80`}>
+                        <span className="h-5 w-5 mb-0.5 inline-flex items-center justify-center rounded-full bg-slate-600 text-white text-[10px] leading-none">P</span>
+                        <span>Profil</span>
                     </a>
                 </div>
             </nav>
