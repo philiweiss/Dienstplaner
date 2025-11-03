@@ -138,7 +138,7 @@ async function run() {
     KEY idx_user (user_id),
     CONSTRAINT fk_webauthn_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
-  `,
+  `;
 
   await conn.query(sql);
 
