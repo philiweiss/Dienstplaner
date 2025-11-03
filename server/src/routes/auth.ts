@@ -290,7 +290,7 @@ router.post('/passkey/login/finish', async (req, res) => {
       expectedOrigin: origin,
       expectedRPID: rpID,
       authenticator: {
-        credentialID: Buffer.from(cred.cred_id),
+        credentialID: toBase64URL(Buffer.from(cred.cred_id)),
         credentialPublicKey: Buffer.from(cred.public_key),
         counter: Number(cred.counter) || 0,
         transports: undefined,
