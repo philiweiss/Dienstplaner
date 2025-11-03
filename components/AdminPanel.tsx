@@ -18,6 +18,8 @@ const getWeekNumber = (d: Date): [number, number] => {
 
 const WeekManagement: React.FC = () => {
     const { weekConfigs, updateWeekStatus, shiftTypes, updateWeekOverride } = useSchedule();
+    const [overrideOpen, setOverrideOpen] = useState<string | null>(null);
+    const [overrideForm, setOverrideForm] = useState<{ shiftTypeId: string; minUsers?: number; maxUsers?: number }>({ shiftTypeId: '' });
 
     const renderWeekConfig = (offset: number) => {
         const date = new Date();
@@ -159,11 +161,11 @@ const ShiftManagement: React.FC = () => {
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Min. Bes.</label>
-                    <input type="number" min="0" value={newShift.minUsers} onChange={e => setNewShift({...newShift, minUsers: parseInt(e.target.value) || 0})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm p-2" required />
+                    <input type="number" min="0" value={newShift.minUsers} onChange={e => setNewShift({...newShift, minUsers: parseInt(e.target.value) || 0})} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" required />
                 </div>
                  <div>
-                    <label className="block text-sm font-medium text-gray-700">Max. Bes.</label>
-                    <input type="number" min="1" value={newShift.maxUsers} onChange={e => setNewShift({...newShift, maxUsers: parseInt(e.target.value) || 1})} className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-slate-500 focus:ring-slate-500 sm:text-sm p-2" required />
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Max. Bes.</label>
+                    <input type="number" min="1" value={newShift.maxUsers} onChange={e => setNewShift({...newShift, maxUsers: parseInt(e.target.value) || 1})} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" required />
                 </div>
                 <div className="md:col-span-full">
                      <label className="block text-sm font-medium text-gray-700">Farbe</label>

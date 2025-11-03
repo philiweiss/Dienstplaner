@@ -53,6 +53,64 @@ const Login: React.FC = () => {
         } finally { setLoading(false); }
     };
 
+    // Helpers for base64url <-> ArrayBuffer
+    const b64urlToBuffer = (b64url: string): ArrayBuffer => {
+        const pad = '='.repeat((4 - (b64url.length % 4)) % 4);
+        const b64 = (b64url + pad).replace(/-/g, '+').replace(/_/g, '/');
+        const str = atob(b64);
+        const bytes = new Uint8Array(str.length);
+        for (let i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i);
+        return bytes.buffer;
+    };
+    const bufferToB64url = (buf: ArrayBuffer): string => {
+        const bytes = new Uint8Array(buf);
+        let str = '';
+        for (let i = 0; i < bytes.length; i++) str += String.fromCharCode(bytes[i]);
+        const b64 = btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+        return b64;
+    };
+
+    const handlePasskeyLogin = async () => {
+        try {
+            setError('');
+            setLoading(true);
+            const start = await startPasskeyLogin(username.trim());
+            // Transform options
+            const publicKey: PublicKeyCredentialRequestOptions['publicKey'] = {
+                ...start,
+                challenge: b64urlToBuffer(start.challenge),
+                allowCredentials: (start.allowCredentials || []).map((c: any) => ({
+                    ...c,
+                    id: typeof c.id === 'string' ? b64urlToBuffer(c.id) : c.id,
+                })),
+            } as any;
+
+            const cred = await navigator.credentials.get({ publicKey });
+            if (!cred) throw new Error('Kein Credential empfangen.');
+            const assertion = cred as PublicKeyCredential;
+            const resp = assertion.response as AuthenticatorAssertionResponse;
+            const payload = {
+                id: assertion.id,
+                rawId: bufferToB64url(assertion.rawId),
+                type: assertion.type,
+                authenticatorAttachment: (assertion as any).authenticatorAttachment,
+                response: {
+                    authenticatorData: bufferToB64url(resp.authenticatorData),
+                    clientDataJSON: bufferToB64url(resp.clientDataJSON),
+                    signature: bufferToB64url(resp.signature),
+                    userHandle: resp.userHandle ? bufferToB64url(resp.userHandle) : undefined,
+                },
+                clientExtensionResults: (assertion as any).getClientExtensionResults?.() || {},
+            };
+            const finish = await finishPasskeyLogin(start.userId, payload);
+            loginWithToken(finish.user, finish.token);
+        } catch (e: any) {
+            setError(e?.message || 'Passkey Login fehlgeschlagen.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleSetPassword = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -104,7 +162,7 @@ const Login: React.FC = () => {
                             </div>
                         </div>
                         {error && <p className="text-red-500 text-sm">{error}</p>}
-                        <div>
+                        <div className="space-y-3">
                             <button
                                 type="submit"
                                 disabled={loading}
@@ -112,6 +170,15 @@ const Login: React.FC = () => {
                             >
                                 {loading ? 'Prüfen…' : 'Weiter'}
                             </button>
+                            <button
+                                type="button"
+                                onClick={handlePasskeyLogin}
+                                disabled={loading || !username.trim()}
+                                className={`group relative w-full flex justify-center py-2 px-4 border text-sm font-medium rounded-md ${loading ? 'bg-slate-200 text-slate-500' : 'border-slate-300 text-slate-700 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700/50'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500`}
+                            >
+                                Mit Passkey anmelden
+                            </button>
+                            <p className="text-xs text-gray-500 text-center">Geben Sie zunächst Ihren Benutzernamen ein, um sich mit Passkey anzumelden.</p>
                         </div>
                     </form>
                 )}
