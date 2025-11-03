@@ -58,7 +58,6 @@ const AdminModal: React.FC<{ open: boolean; onClose: () => void; currentMonday: 
   const [calendarUrl, setCalendarUrl] = useState<string | null>(null);
   const [calLoading, setCalLoading] = useState(false);
   const [calError, setCalError] = useState<string | null>(null);
-  import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
 
   const ensureCalendar = async () => {
     if (!user) return;
