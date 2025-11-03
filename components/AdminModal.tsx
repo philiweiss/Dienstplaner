@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useSchedule } from '../hooks/useSchedule';
 import { useToast } from '../hooks/useToast';
 import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
-import { WeekStatus, AbsencePart, AbsenceType, Role, ShiftType } from '../types';
+import { ShiftType } from '../types';
 
 // Small helpers reused from ScheduleView context
 const getWeekNumber = (d: Date): [number, number] => {
@@ -14,7 +14,7 @@ const getWeekNumber = (d: Date): [number, number] => {
   return [d.getUTCFullYear(), weekNo];
 };
 
-const TABS = ['Woche', 'Abwesenheit', 'Export', 'Besetzung', 'Schichttypen', 'Benutzer'] as const;
+const TABS = ['Export', 'Besetzung', 'Schichttypen', 'Benutzer'] as const;
 export type AdminTab = typeof TABS[number];
 
 const FieldLabel: React.FC<{ label: string }> = ({ label }) => (
@@ -32,23 +32,18 @@ const AdminModal: React.FC<{ open: boolean; onClose: () => void; currentMonday: 
 = ({ open, onClose, currentMonday, daysOfWeek }) => {
   const { user } = useAuth();
   const toast = useToast();
-  const isAdmin = user?.role === 'Admin';
   const {
-    users,
     shiftTypes,
-    weekConfigs,
-    updateWeekStatus,
     updateWeekOverride,
-    addAbsenceRange,
     addShiftType,
     updateShiftType,
     deleteShiftType,
   } = useSchedule();
 
-  const [active, setActive] = useState<AdminTab>('Woche');
+  const [active, setActive] = useState<AdminTab>('Export');
 
   useEffect(() => {
-    if (open) setActive('Woche');
+    if (open) setActive('Export');
   }, [open]);
 
   const [year, weekNumber] = useMemo(() => getWeekNumber(currentMonday), [currentMonday]);

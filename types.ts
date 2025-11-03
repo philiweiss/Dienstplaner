@@ -9,6 +9,7 @@ export interface User {
     role: Role;
     birthday?: string | null; // YYYY-MM-DD
     anniversary?: string | null; // YYYY-MM-DD (Betriebszugehörigkeit)
+    lastLogin?: string | null; // ISO timestamp or YYYY-MM-DD HH:MM:SS
 }
 
 export interface ShiftType {
