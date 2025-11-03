@@ -905,9 +905,9 @@ const ScheduleView: React.FC = () => {
                                             {!isAdmin && canSelfRegister && (
                                                 <button 
                                                     onClick={handleSignUp}
-                                                    className="w-full flex items-center justify-center p-2 mt-2 rounded text-sm font-medium transition bg-gray-200 text-gray-600 hover:bg-slate-200 hover:text-slate-800"
+                                                    className="w-full flex items-center justify-center p-2.5 mt-2 rounded-md text-sm font-semibold transition shadow-sm bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800 active:scale-[0.99]"
                                                 >
-                                                    <PlusIcon className="h-4 w-4 mr-1"/>
+                                                    <PlusIcon className="h-5 w-5 mr-1"/>
                                                     Eintragen
                                                 </button>
                                             )}

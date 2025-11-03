@@ -654,21 +654,21 @@ const AdminPanel: React.FC = () => {
         return (
             <div className="space-y-3">
                 {handoversAdmin.length === 0 && (
-                    <p className="text-sm text-gray-600">Keine Übergaben warten auf Bestätigung.</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">Keine Übergaben warten auf Bestätigung.</p>
                 )}
                 {handoversAdmin.map(h => {
                     const st = shiftTypes.find(s => s.id === h.shiftTypeId);
                     const fromUser = users.find(u => u.id === h.fromUserId);
                     const toUser = users.find(u => u.id === h.toUserId);
                     return (
-                        <div key={h.id} className="p-3 bg-white rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm gap-2">
+                        <div key={h.id} className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm gap-2">
                             <div>
-                                <p className="font-semibold text-gray-800">{st?.name} – {new Date(h.date).toLocaleDateString('de-DE')}</p>
-                                <p className="text-sm text-gray-600">Von {fromUser?.name} an {toUser?.name}</p>
+                                <p className="font-semibold text-gray-800 dark:text-gray-100">{st?.name} – {new Date(h.date).toLocaleDateString('de-DE')}</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-300">Von {fromUser?.name} an {toUser?.name}</p>
                             </div>
                             <div className="flex gap-2 self-end sm:self-center">
-                                <button onClick={() => user && declineHandover(h.id, user.id)} className="px-3 py-1.5 rounded bg-gray-200 hover:bg-gray-300">Ablehnen</button>
-                                <button onClick={() => user && approveHandover(h.id, user.id)} className="px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700">Bestätigen</button>
+                                <button onClick={() => user && declineHandover(h.id, user.id)} className="px-3 py-1.5 rounded bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-100 dark:hover:bg-slate-600">Ablehnen</button>
+                                <button onClick={() => user && approveHandover(h.id, user.id)} className="px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500">Bestätigen</button>
                             </div>
                         </div>
                     );
@@ -684,8 +684,8 @@ const AdminPanel: React.FC = () => {
         return (
             <div className="space-y-6">
                 {handoversAdmin.length > 0 && (
-                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-md">
-                        <p className="font-semibold text-amber-800 mb-2">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-md dark:bg-amber-900/30 dark:border-amber-700">
+                        <p className="font-semibold text-amber-800 mb-2 dark:text-amber-300">
                             Übergaben warten auf Bestätigung ({handoversAdmin.length})
                         </p>
                         <div className="space-y-2">
@@ -695,19 +695,19 @@ const AdminPanel: React.FC = () => {
                                 const toUser = users.find(u => u.id === h.toUserId);
                                 return (
                                     <div key={h.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm">
-                                        <span>
+                                        <span className="text-gray-800 dark:text-gray-200">
                                             {fromUser?.name} → {toUser?.name}: {st?.name} am {new Date(h.date).toLocaleDateString('de-DE')}
                                         </span>
                                         <div className="flex gap-2 mt-2 sm:mt-0">
-                                            <button onClick={() => user && declineHandover(h.id, user.id)} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">Ablehnen</button>
-                                            <button onClick={() => user && approveHandover(h.id, user.id)} className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">Bestätigen</button>
+                                            <button onClick={() => user && declineHandover(h.id, user.id)} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-100 dark:hover:bg-slate-600">Ablehnen</button>
+                                            <button onClick={() => user && approveHandover(h.id, user.id)} className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500">Bestätigen</button>
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
                         {handoversAdmin.length > 3 && (
-                            <p className="text-xs text-amber-800 mt-2">Mehr unter „Übergaben“.</p>
+                            <p className="text-xs text-amber-800 mt-2 dark:text-amber-300">Mehr unter „Übergaben“.</p>
                         )}
                     </div>
                 )}
