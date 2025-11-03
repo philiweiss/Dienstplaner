@@ -10,6 +10,7 @@ export interface User {
     birthday?: string | null; // YYYY-MM-DD
     anniversary?: string | null; // YYYY-MM-DD (Betriebszugehörigkeit)
     lastLogin?: string | null; // ISO timestamp or YYYY-MM-DD HH:MM:SS
+    hasPassword?: boolean; // true if password_hash exists on server
 }
 
 export interface ShiftType {

@@ -4,7 +4,7 @@ import { useSchedule } from '../hooks/useSchedule';
 import { WeekStatus, Role, User, ShiftType } from '../types';
 import { LockClosedIcon, LockOpenIcon, PlusIcon, TrashIcon } from './icons';
 import { useAuth } from '../hooks/useAuth';
-import { adminResetPassword } from '../services/auth';
+import { adminDeletePassword } from '../services/auth';
 import { getUserStats, type UserStats, getWeeklyStats, type WeeklyStatItem } from '../services/stats';
 
 // Re-using helper from ScheduleView
@@ -429,7 +429,30 @@ const UserManagement: React.FC = () => {
     const [sortAsc, setSortAsc] = useState(true);
 
     const [editingId, setEditingId] = useState<string | null>(null);
-    const [editForm, setEditForm] = useState<{ name: string; role: Role; birthday: string | null; anniversary: string | null; pw1?: string; pw2?: string } | null>(null);
+    const [editForm, setEditForm] = useState<{ name: string; role: Role; birthday: string | null; anniversary: string | null } | null>(null);
+    const [pwDeleted, setPwDeleted] = useState<Set<string>>(() => new Set());
+
+    const nameInitials = (name: string): string => {
+        const n = name.trim();
+        if (!n) return '??';
+        const parts = n.split(/\s+/).filter(Boolean);
+        if (parts.length === 1) return parts[0].slice(0,2).toLocaleUpperCase('de-DE');
+        return ((parts[0][0]||'') + (parts[parts.length-1][0]||'')).toLocaleUpperCase('de-DE');
+    };
+    const hashColor = (name: string): string => {
+        // Deterministic gradient pick from a small palette
+        const palettes = [
+            'from-indigo-500 via-purple-500 to-pink-500',
+            'from-sky-500 via-cyan-500 to-teal-500',
+            'from-amber-500 via-orange-500 to-rose-500',
+            'from-emerald-500 via-teal-500 to-cyan-500',
+            'from-fuchsia-500 via-pink-500 to-rose-500',
+        ];
+        let h = 0;
+        for (let i=0;i<name.length;i++) h = (h*31 + name.charCodeAt(i)) >>> 0;
+        const idx = h % palettes.length;
+        return palettes[idx];
+    };
 
     const handleAddUser = (e: React.FormEvent) => {
         e.preventDefault();
@@ -466,11 +489,6 @@ const UserManagement: React.FC = () => {
         if (editForm.anniversary && !dateRe.test(editForm.anniversary)) { alert('Jubiläum bitte als YYYY-MM-DD eingeben.'); return; }
         try {
             await updateUser(id, { name: editForm.name, role: editForm.role, birthday: editForm.birthday || null, anniversary: editForm.anniversary || null });
-            if (editForm.pw1) {
-                if ((editForm.pw1 || '').length < 8) { alert('Passwort muss mindestens 8 Zeichen lang sein.'); return; }
-                if (editForm.pw1 !== editForm.pw2) { alert('Passwörter stimmen nicht überein.'); return; }
-                await adminResetPassword({ userId: id }, editForm.pw1);
-            }
             cancelEdit();
         } catch (e: any) {
             alert(e?.message || 'Änderungen konnten nicht gespeichert werden.');
@@ -528,16 +546,39 @@ const UserManagement: React.FC = () => {
                         <div key={u.id} className="p-3 bg-white dark:bg-slate-900/60 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
                             {!isEditing ? (
                                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                                    <div>
-                                        <p className="font-semibold text-gray-800 dark:text-gray-100">{u.name}</p>
-                                        <p className="text-sm text-gray-500 dark:text-gray-400">{u.role}</p>
-                                        <div className="mt-1 text-xs text-gray-600 dark:text-gray-400 space-x-2">
-                                            <span>🎂 {u.birthday || '—'}</span>
-                                            <span>🎉 {u.anniversary || '—'}</span>
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${hashColor(u.name)} text-white flex items-center justify-center text-sm font-bold shadow`} title={u.name} aria-label={`Avatar von ${u.name}`}>
+                                            {nameInitials(u.name)}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-semibold text-gray-800 dark:text-gray-100">{u.name}</p>
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-100">{u.role}</span>
+                                                {(!u.hasPassword || pwDeleted.has(u.id)) && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200" title="Passwort gelöscht – Benutzer muss beim nächsten Login ein neues setzen">PW gelöscht</span>
+                                                )}
+                                            </div>
+                                            <div className="mt-1 text-xs text-gray-600 dark:text-gray-400 space-x-2">
+                                                <span>🎂 {u.birthday || '—'}</span>
+                                                <span>🎉 {u.anniversary || '—'}</span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
                                         <button onClick={() => startEdit(u)} className="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600 text-sm">Bearbeiten</button>
+                                        <button
+                                            onClick={async () => {
+                                                if (!window.confirm(`Passwort von "${u.name}" wirklich löschen?`)) return;
+                                                try {
+                                                    await adminDeletePassword(u.id);
+                                                    setPwDeleted(prev => new Set(prev).add(u.id));
+                                                } catch (e: any) {
+                                                    alert(e?.message || 'Aktion fehlgeschlagen');
+                                                }
+                                            }}
+                                            className="px-3 py-1.5 rounded bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900/40 dark:text-amber-200 text-sm"
+                                            title="Passwort löschen"
+                                        >Passwort löschen</button>
                                         <button onClick={() => window.confirm(`Benutzer "${u.name}" wirklich löschen?`) && deleteUser(u.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full" title="Benutzer löschen">
                                             <TrashIcon className="h-5 w-5" />
                                         </button>
@@ -566,16 +607,6 @@ const UserManagement: React.FC = () => {
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Jubiläum</label>
                                             <input type="text" placeholder="YYYY-MM-DD" value={editForm!.anniversary || ''} onChange={e => setEditForm(f => f ? {...f, anniversary: e.target.value || null} : f)} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" />
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                        <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Neues Passwort (optional)</label>
-                                            <input type="password" value={editForm!.pw1 || ''} onChange={e => setEditForm(f => f ? {...f, pw1: e.target.value} : f)} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" placeholder="mind. 8 Zeichen" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Wiederholen</label>
-                                            <input type="password" value={editForm!.pw2 || ''} onChange={e => setEditForm(f => f ? {...f, pw2: e.target.value} : f)} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" />
                                         </div>
                                     </div>
                                     <div className="flex gap-2">

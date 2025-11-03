@@ -7,7 +7,7 @@ const router = Router();
 
 router.get('/', async (_req, res) => {
   try {
-    const [rows] = await pool.query("SELECT id, name, role, DATE_FORMAT(birthday, '%Y-%m-%d') as birthday, DATE_FORMAT(anniversary, '%Y-%m-%d') as anniversary, DATE_FORMAT(last_login_at, '%Y-%m-%d %H:%i:%s') as lastLogin FROM users ORDER BY name ASC");
+    const [rows] = await pool.query("SELECT id, name, role, DATE_FORMAT(birthday, '%Y-%m-%d') as birthday, DATE_FORMAT(anniversary, '%Y-%m-%d') as anniversary, DATE_FORMAT(last_login_at, '%Y-%m-%d %H:%i:%s') as lastLogin, (password_hash IS NOT NULL) AS hasPassword FROM users ORDER BY name ASC");
     // @ts-ignore
     res.json(rows);
   } catch (e) {
