@@ -502,8 +502,8 @@ const ScheduleView: React.FC = () => {
             )}
 
             {isAdmin && handoversAdmin && handoversAdmin.length > 0 && (
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                    <p className="font-semibold text-blue-800 mb-2">Übergaben warten auf Bestätigung ({handoversAdmin.length})</p>
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md dark:bg-blue-900/30 dark:border-blue-700">
+                    <p className="font-semibold text-blue-800 mb-2 dark:text-blue-300">Übergaben warten auf Bestätigung ({handoversAdmin.length})</p>
                     <div className="space-y-2">
                         {handoversAdmin.map(h => {
                             const st = shiftTypes.find(s => s.id === h.shiftTypeId);
@@ -511,12 +511,12 @@ const ScheduleView: React.FC = () => {
                             const toUser = users.find(u => u.id === h.toUserId);
                             return (
                                 <div key={h.id} className="flex items-center justify-between text-sm">
-                                    <span>
+                                    <span className="text-gray-800 dark:text-gray-200">
                                         {fromUser?.name} → {toUser?.name} • {st?.name} am {new Date(h.date).toLocaleDateString('de-DE')}
                                     </span>
                                     <div className="flex gap-2">
-                                        <button onClick={() => user && declineHandover(h.id, user.id)} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">Ablehnen</button>
-                                        <button onClick={() => user && approveHandover(h.id, user.id)} className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">Freigeben</button>
+                                        <button onClick={() => user && declineHandover(h.id, user.id)} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-100 dark:hover:bg-slate-600">Ablehnen</button>
+                                        <button onClick={() => user && approveHandover(h.id, user.id)} className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500">Freigeben</button>
                                     </div>
                                 </div>
                             );
@@ -527,20 +527,20 @@ const ScheduleView: React.FC = () => {
 
             {/* Eingehende Übergaben */}
             {user && handoversIncoming.filter(h => h.status === 'REQUESTED').length > 0 && (
-                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
-                    <p className="font-semibold text-amber-800 mb-2">Offene Übergabe-Anfragen an dich</p>
+                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-md dark:bg-amber-900/30 dark:border-amber-700">
+                    <p className="font-semibold text-amber-800 mb-2 dark:text-amber-300">Offene Übergabe-Anfragen an dich</p>
                     <div className="space-y-2">
                         {handoversIncoming.filter(h => h.status === 'REQUESTED').map(h => {
                             const st = shiftTypes.find(s => s.id === h.shiftTypeId);
                             const fromUser = users.find(u => u.id === h.fromUserId);
                             return (
                                 <div key={h.id} className="flex items-center justify-between text-sm">
-                                    <span>
+                                    <span className="text-gray-800 dark:text-gray-200">
                                         {fromUser?.name} möchte dir die Schicht {st?.name} am {new Date(h.date).toLocaleDateString('de-DE')} übergeben.
                                     </span>
                                     <div className="flex gap-2">
-                                        <button onClick={() => respondHandover(h.id, user.id, 'reject')} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300">Ablehnen</button>
-                                        <button onClick={() => respondHandover(h.id, user.id, 'accept')} className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700">Annehmen</button>
+                                        <button onClick={() => respondHandover(h.id, user.id, 'reject')} className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-gray-100 dark:hover:bg-slate-600">Ablehnen</button>
+                                        <button onClick={() => respondHandover(h.id, user.id, 'accept')} className="px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-500">Annehmen</button>
                                     </div>
                                 </div>
                             );
