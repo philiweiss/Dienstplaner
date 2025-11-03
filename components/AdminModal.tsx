@@ -375,24 +375,187 @@ const EditableShiftTypeList: React.FC<{ shiftTypes: ShiftType[]; onUpdate: (id: 
   );
 };
 
+const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0,2).map(s=>s[0]?.toUpperCase()).join('');
+const colorFromId = (id: string) => {
+  const hues = ['sky','emerald','amber','rose','violet','cyan','slate','gray'];
+  let h = 0; for (let i=0;i<id.length;i++) h = (h*31 + id.charCodeAt(i)) >>> 0;
+  return hues[h % hues.length];
+};
+
+const Avatar: React.FC<{ user: User; size?: number }> = ({ user, size = 28 }) => {
+  const hue = colorFromId(user.id);
+  const cls = `bg-${hue}-200 text-${hue}-800`;
+  const style: React.CSSProperties = { width: size, height: size };
+  return (
+    <div className={`rounded-full flex items-center justify-center text-xs font-semibold border ${cls}`} style={style} title={user.name}>
+      {initials(user.name || '?')}
+    </div>
+  );
+};
+
 const UserList: React.FC = () => {
-  const { users } = useSchedule();
+  const { users, updateUser } = useSchedule();
+  const toast = useToast();
   const [q, setQ] = useState('');
+  const [selected, setSelected] = useState<User | null>(null);
+  const [draftName, setDraftName] = useState('');
+  const [draftBirthday, setDraftBirthday] = useState<string>('');
+  const [saving, setSaving] = useState(false);
+  const [calUrl, setCalUrl] = useState<string | null>(null);
+  const [calLoading, setCalLoading] = useState(false);
+  const [nextShifts, setNextShifts] = useState<NextShiftItem[] | null>(null);
+  const [loadingShifts, setLoadingShifts] = useState(false);
+
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    if (!s) return users;
-    return users.filter(u => (u.name || '').toLowerCase().includes(s));
+    const list = users;
+    if (!s) return list;
+    return list.filter(u => (u.name || '').toLowerCase().includes(s));
   }, [q, users]);
+
+  useEffect(() => {
+    if (!selected) return;
+    // sync drafts when selection or users list updates
+    const fresh = users.find(u => u.id === selected.id) || selected;
+    setSelected(fresh);
+    setDraftName(fresh.name || '');
+    setDraftBirthday(fresh.birthday || '');
+    // load calendar url
+    (async ()=>{
+      try { setCalLoading(true); const res = await getOrCreateCalendarUrl(fresh.id); setCalUrl(res.url); }
+      catch(_) { setCalUrl(null); }
+      finally { setCalLoading(false); }
+    })();
+    // load next shifts
+    (async ()=>{
+      try { setLoadingShifts(true); const rows = await getNextShifts(fresh.id, 5); setNextShifts(rows); }
+      catch(_) { setNextShifts([]); }
+      finally { setLoadingShifts(false); }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id, users.length]);
+
+  const save = async () => {
+    if (!selected) return;
+    try {
+      setSaving(true);
+      const fields: any = {};
+      if (draftName !== (selected.name || '')) fields.name = draftName.trim();
+      const b = draftBirthday || null;
+      if (b !== (selected.birthday || null)) fields.birthday = b;
+      if (Object.keys(fields).length === 0) { toast.info('Keine Änderungen'); return; }
+      await updateUser(selected.id, fields);
+      toast.success('Benutzer gespeichert');
+    } catch (e: any) {
+      toast.error(e?.message || 'Fehler beim Speichern');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const delPwd = async () => {
+    if (!selected) return;
+    if (!confirm('Passwort wirklich löschen? Benutzer muss ein neues setzen.')) return;
+    try {
+      await adminDeletePassword(selected.id);
+      toast.success('Passwort gelöscht');
+    } catch (e: any) {
+      toast.error(e?.message || 'Fehler beim Löschen des Passworts');
+    }
+  };
+
+  const regenCal = async () => {
+    if (!selected) return;
+    try { setCalLoading(true); const res = await regenerateCalendarUrl(selected.id); setCalUrl(res.url); toast.success('Kalender-URL zurückgesetzt'); }
+    catch (e: any) { toast.error(e?.message || 'Fehler beim Zurücksetzen'); }
+    finally { setCalLoading(false); }
+  };
+
+  const copyCal = async () => {
+    if (!calUrl) return;
+    try { await navigator.clipboard.writeText(calUrl); toast.success('URL kopiert'); }
+    catch { toast.error('Kopieren fehlgeschlagen'); }
+  };
+
+  const formatLastLogin = (u?: User | null) => {
+    const v = u?.lastLogin; if (!v) return '—';
+    // show as dd.mm.yyyy HH:MM
+    const d = new Date(v.replace(' ', 'T'));
+    if (isNaN(d.getTime())) return v;
+    return d.toLocaleString('de-DE');
+  };
+
   return (
-    <div className="space-y-2">
-      <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Suchen…" className="w-full px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
-      <div className="max-h-64 overflow-auto divide-y divide-gray-200 dark:divide-slate-700">
-        {filtered.map(u => (
-          <div key={u.id} className="py-2 text-sm flex justify-between items-center">
-            <span>{u.name}</span>
-            <span className="text-xs text-gray-500">{u.role}</span>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="space-y-2 md:max-h-80 md:overflow-auto">
+        <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Suchen…" className="w-full px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+        <div className="divide-y divide-gray-200 dark:divide-slate-700">
+          {filtered.map(u => (
+            <button key={u.id} onClick={()=>setSelected(u)} className={`w-full py-2 text-sm flex items-center justify-between gap-2 hover:bg-gray-50 dark:hover:bg-slate-700 px-2 rounded ${selected?.id===u.id?'bg-sky-50 dark:bg-slate-700':''}`}>
+              <div className="flex items-center gap-2 min-w-0">
+                <Avatar user={u} />
+                <span className="truncate">{u.name}</span>
+              </div>
+              <div className="text-xs text-gray-500">
+                {u.role}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {!selected ? (
+          <div className="text-sm text-gray-500">Benutzer auswählen…</div>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Avatar user={selected} size={40} />
+              <div className="min-w-0">
+                <div className="font-semibold truncate">{selected.name}</div>
+                <div className="text-xs text-gray-500">Letzter Login: {formatLastLogin(selected)}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <FieldLabel label="Name" />
+                <input value={draftName} onChange={e=>setDraftName(e.target.value)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+              </div>
+              <div>
+                <FieldLabel label="Geburtstag" />
+                <input type="date" value={draftBirthday || ''} onChange={e=>setDraftBirthday(e.target.value)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button disabled={saving} onClick={save} className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-60">Speichern</button>
+              <button onClick={delPwd} className="px-3 py-1.5 rounded bg-rose-600 text-white hover:bg-rose-700">Passwort löschen</button>
+            </div>
+
+            <div className="space-y-2">
+              <FieldLabel label="Kalender-URL" />
+              <div className="flex items-center gap-2">
+                <input readOnly value={calUrl || ''} placeholder={calLoading? 'Lade…' : '—'} className="flex-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
+                <button disabled={!calUrl || calLoading} onClick={copyCal} className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-300 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600">Kopieren</button>
+                <button disabled={calLoading} onClick={regenCal} className="px-2 py-1 rounded bg-gray-100 hover:bg-gray-200 border border-gray-300 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600">Zurücksetzen</button>
+              </div>
+            </div>
+
+            <div>
+              <FieldLabel label="Nächste Schichten" />
+              {!nextShifts || loadingShifts ? (
+                <div className="text-sm text-gray-500 mt-1">Lade…</div>
+              ) : nextShifts.length === 0 ? (
+                <div className="text-sm text-gray-500 mt-1">Keine Schichten geplant.</div>
+              ) : (
+                <ul className="mt-1 text-sm list-disc pl-5">
+                  {nextShifts.map((it, idx) => (
+                    <li key={idx}>{new Date(it.date+'T00:00:00').toLocaleDateString('de-DE')} · {it.shiftName} ({it.startTime}–{it.endTime})</li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

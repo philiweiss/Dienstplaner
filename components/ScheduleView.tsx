@@ -269,6 +269,49 @@ const ScheduleView: React.FC = () => {
         });
     }, [currentDate]);
 
+    // Export-Dropdown: Click-Outside schließen
+    useEffect(() => {
+        const onDoc = (e: MouseEvent) => {
+            if (!exportWrap.current) return;
+            if (!exportWrap.current.contains(e.target as Node)) setExportOpen(false);
+        };
+        document.addEventListener('mousedown', onDoc);
+        return () => document.removeEventListener('mousedown', onDoc);
+    }, []);
+
+    // Konflikt-Zähler: Übergaben + Unter-/Überbesetzung
+    const conflictCount = useMemo(() => {
+        let c = 0;
+        try {
+            // Übergaben
+            c += (handoversAdmin?.length || 0) + handoversIncoming.filter(h => h.status === 'REQUESTED').length;
+            // Unter-/Überbesetzung pro Tag/Schicht
+            for (const day of daysOfWeek) {
+                const date = day.toISOString().slice(0, 10);
+                for (const st of shiftTypes) {
+                    const limits = getEffectiveShiftLimits(date, st.id);
+                    const assigned = (assignments[date]?.[st.id] || []).length;
+                    if (limits?.min != null && assigned < limits.min) c++;
+                    if (limits?.max != null && assigned > limits.max) c++;
+                }
+            }
+        } catch (_e) { /* fail-safe */ }
+        return c;
+    }, [handoversAdmin, handoversIncoming, daysOfWeek, shiftTypes, assignments, getEffectiveShiftLimits]);
+
+    // Woche sperren/öffnen mit Undo-Status
+    const handleToggleWeek = async () => {
+        const next = isWeekOpen ? WeekStatus.LOCKED : WeekStatus.OPEN;
+        const prev = isWeekOpen ? WeekStatus.OPEN : WeekStatus.LOCKED;
+        try {
+            await updateWeekStatus(year, weekNumber, next);
+            setUndoWeek({ year, weekNumber, prev });
+            toast.success(next === WeekStatus.OPEN ? 'Woche geöffnet' : 'Woche gesperrt');
+        } catch (e: any) {
+            toast.error(e?.message || 'Fehler beim Aktualisieren');
+        }
+    };
+
     useEffect(() => {
         if (user) {
             refreshHandovers(user.id);
