@@ -155,6 +155,15 @@ function getOrigin(req: any): string | null {
   return `${proto}://${host}`;
 }
 
+// Helper to convert binary to Base64URL string as required by @simplewebauthn types
+function toBase64URL(data: Uint8Array | Buffer): string {
+  return Buffer.from(data)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
+
 router.post('/passkey/register/start', requireAuth, async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
@@ -168,7 +177,7 @@ router.post('/passkey/register/start', requireAuth, async (req, res) => {
     const options = await generateRegistrationOptions({
       rpName: RP_NAME,
       rpID,
-      userID: userId,
+      userID: Buffer.from(userId),
       userName: req.user.name,
       attestationType: 'none',
       authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
