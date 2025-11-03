@@ -1,8 +1,63 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { changePassword } from '../services/auth';
-import { getUserStats, type UserStats } from '../services/stats';
+import { getUserStats, getWeeklyStats, type UserStats, type WeeklyStatItem } from '../services/stats';
 import { useSchedule } from '../hooks/useSchedule';
+
+// Lightweight visual components (no external deps)
+const MiniBarChart: React.FC<{ values: number[]; width?: number; height?: number }>
+  = ({ values, width = 320, height = 72 }) => {
+    if (!values || values.length === 0) return null;
+    const max = Math.max(...values, 1);
+    const padding = 6;
+    const barGap = 4;
+    const n = values.length;
+    const barWidth = Math.max(2, (width - padding * 2 - barGap * (n - 1)) / n);
+    return (
+      <svg width={width} height={height} className="block">
+        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="currentColor" opacity={0.2} />
+        {values.map((v, i) => {
+          const h = Math.round(((v / max) * (height - padding * 2)) || 0);
+          const x = padding + i * (barWidth + barGap);
+          const y = height - padding - h;
+          return (
+            <rect key={i} x={x} y={y} width={barWidth} height={h}
+                  className="fill-slate-700 dark:fill-slate-300" rx={2} />
+          );
+        })}
+      </svg>
+    );
+  };
+
+const DonutChart: React.FC<{ counts: { name: string; count: number }[]; size?: number }>
+  = ({ counts, size = 120 }) => {
+    const total = counts.reduce((a, b) => a + (b.count || 0), 0);
+    if (total === 0) return <p className="text-sm text-gray-500">Noch keine Schichten erfasst.</p>;
+    const r = size / 2 - 8;
+    const cx = size / 2, cy = size / 2;
+    const C = 2 * Math.PI * r;
+    const palette = ['#38bdf8', '#f59e0b', '#22c55e', '#8b5cf6', '#ef4444', '#14b8a6', '#eab308'];
+    let acc = 0;
+    return (
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="block">
+        <circle cx={cx} cy={cy} r={r} stroke="#e5e7eb" className="dark:stroke-slate-700" strokeWidth={10} fill="none" />
+        {counts.map((c, i) => {
+          const len = (c.count / total) * C;
+          const dash = `${len} ${C - len}`;
+          const offset = -acc;
+          acc += len;
+          return (
+            <circle key={c.name} cx={cx} cy={cy} r={r} fill="none"
+                    stroke={palette[i % palette.length]} strokeWidth={10}
+                    strokeDasharray={dash} strokeDashoffset={offset}
+                    transform={`rotate(-90 ${cx} ${cy})`} />
+          );
+        })}
+        <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
+              className="fill-slate-800 dark:fill-slate-100" fontSize={14} fontWeight={600}>{total}</text>
+      </svg>
+    );
+  };
 
 const Profile: React.FC = () => {
   const { user } = useAuth();
@@ -17,6 +72,10 @@ const Profile: React.FC = () => {
   const [stats, setStats] = useState<UserStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
   const [statsError, setStatsError] = useState<string | null>(null);
+
+  const [weekly, setWeekly] = useState<WeeklyStatItem[] | null>(null);
+  const [weeklyLoading, setWeeklyLoading] = useState(false);
+  const [weeklyError, setWeeklyError] = useState<string | null>(null);
 
   const me = useMemo(() => users.find(u => u.id === user?.id), [users, user?.id]);
   const [birthday, setBirthday] = useState<string>('');
@@ -43,6 +102,30 @@ const Profile: React.FC = () => {
       }
     }
     load();
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  // Load weekly stats (last ~12 weeks)
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWeekly() {
+      if (!user) return;
+      setWeeklyError(null);
+      setWeeklyLoading(true);
+      try {
+        const today = new Date();
+        const startDate = new Date(today);
+        startDate.setDate(startDate.getDate() - 7 * 11); // approx 12 weeks including current
+        const toISO = (d: Date) => d.toISOString().slice(0, 10);
+        const data = await getWeeklyStats(toISO(startDate), toISO(today));
+        if (!cancelled) setWeekly(data);
+      } catch (e: any) {
+        if (!cancelled) setWeeklyError(e?.message || 'Konnte Wochenstatistik nicht laden');
+      } finally {
+        if (!cancelled) setWeeklyLoading(false);
+      }
+    }
+    loadWeekly();
     return () => { cancelled = true; };
   }, [user?.id]);
 
