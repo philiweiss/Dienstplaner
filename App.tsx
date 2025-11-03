@@ -20,7 +20,7 @@ const AppContent: React.FC = () => {
         <ThemeProvider userId={user?.id}>
             <ToastProvider>
                 {!user ? (
-                    <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
+                    <div className="min-h-screen flex items-center justify-center bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100 animate-fade-in">
                         <Login />
                     </div>
                 ) : (
@@ -28,8 +28,10 @@ const AppContent: React.FC = () => {
                         <div className="min-h-screen bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
                             <Header currentView={view} setView={setView} />
                             <main className="pt-16 pb-20 px-4 sm:px-6 lg:px-8 sm:pb-8">
-                                {view === 'schedule' && <ScheduleView />}
-                                {view === 'profile' && <Profile />}
+                                <div key={view} className="animate-slide-up">
+                                    {view === 'schedule' && <ScheduleView />}
+                                    {view === 'profile' && <Profile />}
+                                </div>
                             </main>
                         </div>
                     </ScheduleProvider>

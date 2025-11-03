@@ -109,8 +109,8 @@ const AdminModal: React.FC<{ open: boolean; onClose: () => void; currentMonday: 
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div role="dialog" aria-modal="true" className="relative bg-white dark:bg-slate-800 dark:text-gray-100 w-full max-w-3xl rounded-lg shadow-xl border border-gray-200 dark:border-slate-700">
+      <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={onClose} />
+      <div role="dialog" aria-modal="true" className="relative bg-white dark:bg-slate-800 dark:text-gray-100 w-full max-w-3xl rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 animate-scale-in">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-slate-700">
           <h3 className="text-lg font-semibold">Admin</h3>
