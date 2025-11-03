@@ -85,34 +85,6 @@ const AdminModal: React.FC<{ open: boolean; onClose: () => void; currentMonday: 
     catch { toast.error('Kopieren fehlgeschlagen'); }
   };
 
-  // Abwesenheit (Woche) form state
-  const monday = daysOfWeek[0];
-  const sunday = daysOfWeek[daysOfWeek.length - 1];
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
-  const [absUser, setAbsUser] = useState('');
-  const [absType, setAbsType] = useState<AbsenceType>('SICK');
-  const [absPart, setAbsPart] = useState<AbsencePart>('FULL');
-  const [absNote, setAbsNote] = useState('');
-  const [absStart, setAbsStart] = useState(fmt(monday));
-  const [absEnd, setAbsEnd] = useState(fmt(sunday));
-  const [submittingAbs, setSubmittingAbs] = useState(false);
-
-  const submitAbsence = async () => {
-    if (!absUser || !absStart || !absEnd) { toast.warn('Bitte Benutzer, Start und Ende wählen.'); return; }
-    const s = new Date(absStart + 'T00:00:00Z');
-    const e = new Date(absEnd + 'T00:00:00Z');
-    if (e < s) { toast.warn('Ende darf nicht vor Start liegen.'); return; }
-    try {
-      setSubmittingAbs(true);
-      const res = await addAbsenceRange(absUser, absStart, absEnd, absType, absNote || null, absPart);
-      toast.success(`Abwesenheiten angelegt: ${res.created.length}${res.skipped.length ? `, übersprungen: ${res.skipped.length}` : ''}`);
-    } catch (e: any) {
-      toast.error(e?.message || 'Fehler beim Anlegen der Abwesenheit');
-    } finally {
-      setSubmittingAbs(false);
-    }
-  };
-
   // Besetzung (Wochen-Overrides)
   const [selectedShift, setSelectedShift] = useState<string>('');
   const [minUsers, setMinUsers] = useState<string>('');
