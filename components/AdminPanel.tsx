@@ -205,13 +205,44 @@ const HBar: React.FC<{ label: string; value: number; max: number; colorClass?: s
     const pct = max > 0 ? Math.max(2, Math.round((value / max) * 100)) : 0;
     return (
         <div className="mb-2">
-            <div className="flex justify-between text-sm text-gray-700">
+            <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
                 <span className="truncate mr-2" title={label}>{label}</span>
                 <span className="font-medium">{value}</span>
             </div>
-            <div className="w-full h-2 bg-gray-100 rounded">
+            <div className="w-full h-2 bg-gray-100 dark:bg-slate-700 rounded">
                 <div className={`h-2 rounded ${colorClass || 'bg-slate-500'}`} style={{ width: `${pct}%` }}></div>
             </div>
+        </div>
+    );
+};
+
+// SelectList: non-dropdown option chooser with dark-mode styles
+const SelectList: React.FC<{
+    options: { label: string; value: string }[];
+    value: string;
+    onChange: (value: string) => void;
+    ariaLabel?: string;
+}> = ({ options, value, onChange, ariaLabel }) => {
+    return (
+        <div role="listbox" aria-label={ariaLabel} className="flex flex-wrap gap-2">
+            {options.map(opt => {
+                const selected = opt.value === value;
+                return (
+                    <button
+                        key={opt.value}
+                        type="button"
+                        role="option"
+                        aria-selected={selected}
+                        onClick={() => onChange(opt.value)}
+                        className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500/50
+                        ${selected
+                            ? 'bg-slate-700 text-white border-slate-700 dark:bg-slate-200 dark:text-slate-900 dark:border-slate-200'
+                            : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-700'}`}
+                        >
+                        {opt.label}
+                    </button>
+                );
+            })}
         </div>
     );
 };

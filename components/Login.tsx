@@ -12,7 +12,7 @@ const Login: React.FC = () => {
     const [password2, setPassword2] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { loginUsernameOnly, loginWithPassword, setInitialPasswordAndLogin } = useAuth();
+    const { loginUsernameOnly, loginWithPassword, setInitialPasswordAndLogin, loginWithToken } = useAuth();
 
     const handleUsernameSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
