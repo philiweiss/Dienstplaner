@@ -132,6 +132,11 @@ async function run() {
     await conn.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_changes_at TIMESTAMP NULL");
   } catch (_) {}
 
+  // Add last_login_at to users (best-effort)
+  try {
+    await conn.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP NULL");
+  } catch (_) {}
+
   // Create shift_changes table (best-effort)
   try {
     await conn.query(`CREATE TABLE IF NOT EXISTS shift_changes (

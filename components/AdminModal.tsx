@@ -47,10 +47,6 @@ const AdminModal: React.FC<{ open: boolean; onClose: () => void; currentMonday: 
   }, [open]);
 
   const [year, weekNumber] = useMemo(() => getWeekNumber(currentMonday), [currentMonday]);
-  const isWeekOpen = useMemo(() => {
-    const wk = weekConfigs.find(w => w.year === year && w.weekNumber === weekNumber);
-    return (wk?.status || WeekStatus.OPEN) === WeekStatus.OPEN;
-  }, [weekConfigs, year, weekNumber]);
 
   // Export: iCal token based URL
   const [calendarUrl, setCalendarUrl] = useState<string | null>(null);
