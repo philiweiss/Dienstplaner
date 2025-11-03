@@ -369,7 +369,7 @@ const ScheduleView: React.FC = () => {
     return (
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
             {/* NEO HEADER */}
-            <div className="relative sticky top-0 z-20 -m-4 sm:-m-6 p-3 sm:p-4 bg-white/60 dark:bg-slate-900/30 backdrop-blur-lg ring-1 ring-black/5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+            <div className="relative sticky top-14 sm:top-16 z-20 -m-4 sm:-m-6 p-3 sm:p-4 bg-white/60 dark:bg-slate-900/30 backdrop-blur-lg ring-1 ring-black/5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
                 {/* Accent gradient line */}
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-emerald-400 opacity-80" />
                 <div className="flex items-center justify-between gap-3">
