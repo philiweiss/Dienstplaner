@@ -6,6 +6,7 @@ import { useToast } from '../hooks/useToast';
 import { Role, WeekStatus, User, AbsenceType, AbsencePart, Absence } from '../types';
 import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
 import { ChevronLeftIcon, ChevronRightIcon, LockClosedIcon, PlusIcon, TrashIcon, ExclamationIcon, LockOpenIcon } from './icons';
+import AdminModal from './AdminModal';
 
 // Lightweight Avatar component (no backend changes). Uses DiceBear by name as seed with initials fallback.
 const stringToColor = (str: string) => {
@@ -216,6 +217,7 @@ const AdminAssignControl: React.FC<{
 
 
 const ScheduleView: React.FC = () => {
+    const [showAdmin, setShowAdmin] = useState(false);
     const [showShiftManager, setShowShiftManager] = useState(false);
     const [showUserManager, setShowUserManager] = useState(false);
     const [newShift, setNewShift] = useState({ name: '', startTime: '08:00', endTime: '16:00', color: 'bg-gray-200 text-gray-800', minUsers: 1, maxUsers: 1 });
@@ -338,88 +340,17 @@ const ScheduleView: React.FC = () => {
                             Woche gesperrt
                         </div>
                     )}
-                    <button 
-                        onClick={handleExport}
-                        className="bg-slate-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-slate-800 transition shadow"
-                    >
-                        Exportieren
-                    </button>
-                    {isAdmin && (
-                        <div className="hidden sm:flex items-center space-x-2 ml-2">
-                            <button
-                                onClick={() => {
-                                    // Prefill current week Mon-Fri
-                                    const start = daysOfWeek[0].toISOString().slice(0,10);
-                                    const end = daysOfWeek[daysOfWeek.length - 1].toISOString().slice(0,10);
-                                    setAbsenceModal({ open: true, userId: '', type: 'SICK', start, end, part: 'FULL', note: '' });
-                                }}
-                                className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 dark:hover:bg-slate-700"
-                                title="Abwesenheit für Woche eintragen"
-                            >
-                                + Abwesenheit (Woche)
-                            </button>
-                            <button
-                                onClick={() => {
-                                    const next = isWeekOpen ? WeekStatus.LOCKED : WeekStatus.OPEN;
-                                    updateWeekStatus(year, weekNumber, next);
-                                    toast.success(`Woche ${isWeekOpen ? 'gesperrt' : 'geöffnet'}`);
-                                }}
-                                className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 dark:hover:bg-slate-700"
-                                title="Woche sperren/öffnen"
-                            >
-                                {isWeekOpen ? 'Woche sperren' : 'Woche öffnen'}
-                            </button>
-                            <button
-                                onClick={() => {
-                                    if (shiftTypes.length === 0) {
-                                        alert('Keine Schichttypen vorhanden.');
-                                        return;
-                                    }
-                                    const list = shiftTypes.map((s, idx) => `${idx + 1}: ${s.name}`).join('\n');
-                                    const sel = window.prompt(`Für welche Schicht soll die Wochen-Besetzung angepasst werden?\n${list}\nGib die Nummer ein:`);
-                                    if (!sel) return;
-                                    const idx = parseInt(sel, 10) - 1;
-                                    if (isNaN(idx) || idx < 0 || idx >= shiftTypes.length) {
-                                        alert('Ungültige Auswahl.');
-                                        return;
-                                    }
-                                    const st = shiftTypes[idx];
-                                    const minStr = window.prompt(`Min. Besetzung für KW ${weekNumber}/${year} (${st.name}). Leer lassen, um Basiswert zu verwenden.`, '');
-                                    const maxStr = window.prompt(`Max. Besetzung für KW ${weekNumber}/${year} (${st.name}). Leer lassen, um Basiswert zu verwenden.`, '');
-                                    const minUsers = minStr !== null && minStr.trim() !== '' ? Math.max(0, parseInt(minStr, 10) || 0) : undefined;
-                                    const maxUsers = maxStr !== null && maxStr.trim() !== '' ? Math.max(0, parseInt(maxStr, 10) || 0) : undefined;
-                                    if (minUsers === undefined && maxUsers === undefined) {
-                                        alert('Mindestens einen Wert (min oder max) angeben.');
-                                        return;
-                                    }
-                                    if (minUsers !== undefined && maxUsers !== undefined && maxUsers < minUsers) {
-                                        alert('Max darf nicht kleiner als Min sein.');
-                                        return;
-                                    }
-                                    updateWeekOverride({ year, weekNumber, shiftTypeId: st.id, minUsers, maxUsers })
-                                        .then(() => toast.success('Wochen-Besetzung gespeichert.'))
-                                        .catch((e: any) => toast.error(e?.message || 'Fehler beim Speichern'));
-                                }}
-                                className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 dark:hover:bg-slate-700"
-                                title="Wochen-Besetzung anpassen"
-                            >
-                                Wochen-Besetzung
-                            </button>
-                            <button
-                                onClick={() => setShowShiftManager(true)}
-                                className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 dark:hover:bg-slate-700"
-                                title="Schichttypen verwalten"
-                            >
-                                Schichttypen
-                            </button>
-                            <button
-                                onClick={() => setShowUserManager(true)}
-                                className="px-3 py-2 rounded-md bg-gray-100 hover:bg-gray-200 border border-gray-300 text-gray-700 dark:bg-slate-800 dark:text-gray-100 dark:border-slate-600 dark:hover:bg-slate-700"
-                                title="Benutzer verwalten"
-                            >
-                                Benutzer
-                            </button>
-                        </div>
+                    {isAdmin ? (
+                        <button onClick={() => setShowAdmin(true)} className="px-3 py-2 rounded-md bg-slate-700 text-white hover:bg-slate-800 transition shadow">
+                            Admin
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={handleExport}
+                            className="bg-slate-700 text-white px-4 py-2 rounded-md font-semibold hover:bg-slate-800 transition shadow"
+                        >
+                            Exportieren
+                        </button>
                     )}
                 </div>
             </div>
