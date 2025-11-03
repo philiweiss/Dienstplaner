@@ -194,43 +194,78 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 text-gray-800 dark:text-gray-100">
-      <section className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-lg shadow transition-colors">
-        <h2 className="text-xl font-semibold mb-4">Profil</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-300">Angemeldet als <span className="font-medium">{user.name}</span> ({user.role})</p>
+    <div className="max-w-3xl mx-auto space-y-8 text-gray-800 dark:text-gray-100">
+      {/* Header Card */}
+      <section className="bg-white/70 dark:bg-slate-900/60 backdrop-blur border border-slate-200/60 dark:border-slate-700/60 p-6 rounded-xl shadow-sm transition-colors">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-100 font-semibold">
+            {initials || '🙂'}
+          </div>
+          <div className="flex-1">
+            <h2 className="text-xl font-semibold leading-tight">{user.name}</h2>
+            <div className="mt-1 flex items-center gap-2">
+              <span className="inline-flex items-center rounded-full px-2 py-0.5 text-xs border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300">{user.role}</span>
+              {stats && (
+                <span className="text-xs text-slate-500 dark:text-slate-400">{stats.total} Schichten insgesamt</span>
+              )}
+            </div>
+          </div>
+        </div>
       </section>
 
-      <section className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-6 rounded-lg shadow transition-colors">
+      {/* Stats + Charts */}
+      <section className="bg-white/70 dark:bg-slate-900/60 backdrop-blur border border-slate-200/60 dark:border-slate-700/60 p-6 rounded-xl shadow-sm transition-colors">
         <h3 className="text-lg font-semibold mb-4">Meine Statistik</h3>
         {statsLoading ? (
           <p className="text-sm text-gray-500">Lade Statistiken…</p>
         ) : statsError ? (
-          <p className="text-sm text-red-600">{statsError}</p>
+          <p className="text-sm text-red-500">{statsError}</p>
         ) : (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="px-3 py-2 bg-slate-100 rounded-md">
-                <div className="text-xs text-gray-500">Gesamt</div>
-                <div className="text-lg font-semibold">{stats?.total ?? 0}</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="flex items-center gap-4">
+              <div className="shrink-0">
+                <DonutChart counts={(stats?.byShiftType ?? []).map(s => ({ name: s.name, count: s.count }))} />
               </div>
-              <div className="px-3 py-2 bg-slate-100 rounded-md">
-                <div className="text-xs text-gray-500">Letzte Schicht</div>
-                <div className="text-lg font-semibold">{stats?.lastDate ?? '—'}</div>
-              </div>
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-700 mb-2">Nach Schichtart</div>
-              {(!stats || stats.byShiftType.length === 0) ? (
-                <p className="text-sm text-gray-500">Noch keine Schichten erfasst.</p>
-              ) : (
+              <div className="space-y-2">
+                <div className="px-3 py-2 rounded-md bg-slate-100 dark:bg-slate-800/70">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Gesamt</div>
+                  <div className="text-lg font-semibold">{stats?.total ?? 0}</div>
+                </div>
+                <div className="px-3 py-2 rounded-md bg-slate-100 dark:bg-slate-800/70">
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Letzte Schicht</div>
+                  <div className="text-lg font-semibold">{stats?.lastDate ?? '—'}</div>
+                </div>
+                <div className="text-xs text-slate-500 dark:text-slate-400">Nach Schichtart</div>
                 <div className="flex flex-wrap gap-2">
-                  {stats.byShiftType.map(s => (
-                    <span key={s.shiftTypeId} className={`inline-flex items-center gap-2 px-3 py-1 rounded ${s.color}`}>
-                      <span className="text-xs font-semibold">{s.name}</span>
-                      <span className="text-sm font-bold">{s.count}</span>
+                  {(stats?.byShiftType ?? []).map(s => (
+                    <span key={s.shiftTypeId} className={`inline-flex items-center gap-2 px-2 py-1 rounded text-xs ${s.color}`}>
+                      <span className="font-medium">{s.name}</span>
+                      <span className="font-bold">{s.count}</span>
                     </span>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium text-gray-700 dark:text-gray-200">Wochenentwicklung</div>
+                {weekly && weekly.length > 0 && (
+                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                    KW {weekly[0].week}–{weekly[weekly.length - 1].week}
+                  </div>
+                )}
+              </div>
+              {weeklyLoading ? (
+                <p className="text-sm text-gray-500">Lade…</p>
+              ) : weeklyError ? (
+                <p className="text-sm text-red-500">{weeklyError}</p>
+              ) : weekly && weekly.length > 0 ? (
+                <div className="bg-slate-50 dark:bg-slate-800/60 rounded-md p-3">
+                  <MiniBarChart values={weeklyTotals} />
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">Keine Wochenstatistik vorhanden.</p>
               )}
             </div>
           </div>
