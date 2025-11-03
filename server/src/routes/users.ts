@@ -7,7 +7,7 @@ const router = Router();
 
 router.get('/', async (_req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, name, role, DATE_FORMAT(birthday, "%Y-%m-%d") as birthday, DATE_FORMAT(anniversary, "%Y-%m-%d") as anniversary FROM users ORDER BY name ASC');
+    const [rows] = await pool.query("SELECT id, name, role, DATE_FORMAT(birthday, '%Y-%m-%d') as birthday, DATE_FORMAT(anniversary, '%Y-%m-%d') as anniversary, DATE_FORMAT(last_login_at, '%Y-%m-%d %H:%i:%s') as lastLogin FROM users ORDER BY name ASC");
     // @ts-ignore
     res.json(rows);
   } catch (e) {
@@ -74,6 +74,32 @@ router.delete('/:id', async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// Upcoming shifts for a user
+router.get('/:id/next-shifts', async (req, res) => {
+  const { id } = req.params;
+  const limit = Math.min(20, Math.max(1, parseInt(String(req.query.limit || '5'), 10) || 5));
+  try {
+    const [rows]: any = await pool.query(
+      `SELECT DATE_FORMAT(a.date, '%Y-%m-%d') AS date,
+              st.id AS shiftTypeId,
+              st.name AS shiftName,
+              TIME_FORMAT(st.start_time, '%H:%i') AS startTime,
+              TIME_FORMAT(st.end_time, '%H:%i') AS endTime
+       FROM assignment_users au
+       JOIN assignments a ON a.id = au.assignment_id
+       JOIN shift_types st ON st.id = a.shift_type_id
+       WHERE au.user_id = ? AND a.date >= CURDATE()
+       ORDER BY a.date ASC, st.start_time ASC
+       LIMIT ?`,
+      [id, limit]
+    );
+    return res.json(rows);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Failed to load next shifts' });
   }
 });
 

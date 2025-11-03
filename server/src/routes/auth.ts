@@ -63,7 +63,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Passwort erforderlich' });
     }
     // Initialize last_seen_changes_at as baseline for unread indicator
-    try { await pool.query('UPDATE users SET last_seen_changes_at = NOW() WHERE id=?', [user.id]); } catch (_) {}
+    try { await pool.query('UPDATE users SET last_seen_changes_at = NOW(), last_login_at = NOW() WHERE id=?', [user.id]); } catch (_) {}
     return res.json({ user: { id: user.id, name: user.name, role: user.role }, needsPassword: true });
   } catch (e) {
     console.error(e);
@@ -83,7 +83,7 @@ router.post('/login-password', async (req, res) => {
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Ungültige Anmeldedaten' });
     const token = signToken({ id: user.id, name: user.name, role: user.role });
-    try { await pool.query('UPDATE users SET last_seen_changes_at = NOW() WHERE id=?', [user.id]); } catch (_) {}
+    try { await pool.query('UPDATE users SET last_seen_changes_at = NOW(), last_login_at = NOW() WHERE id=?', [user.id]); } catch (_) {}
     return res.json({ user: { id: user.id, name: user.name, role: user.role }, token });
   } catch (e) {
     console.error(e);
@@ -177,6 +177,26 @@ router.post('/admin/reset-password', async (req, res) => {
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: 'Admin Passwort-Reset fehlgeschlagen' });
+  }
+});
+
+// ADMIN: Delete password (set to NULL) so user must set a new one on next login
+router.post('/admin/delete-password', async (req, res) => {
+  const schema = z.object({
+    userId: z.string().uuid(),
+  });
+  const parse = schema.safeParse(req.body);
+  if (!parse.success) return res.status(400).json({ error: parse.error.format() });
+  const { userId } = parse.data;
+  try {
+    const [rows] = await pool.query<UserPwdRow[]>('SELECT id FROM users WHERE id=? LIMIT 1', [userId]);
+    const user: UserPwdRow | null = Array.isArray(rows) && rows.length ? (rows[0] as UserPwdRow) : null;
+    if (!user) return res.status(404).json({ error: 'Benutzer existiert nicht' });
+    await pool.query('UPDATE users SET password_hash=NULL WHERE id=?', [userId]);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Passwort löschen fehlgeschlagen' });
   }
 });
 

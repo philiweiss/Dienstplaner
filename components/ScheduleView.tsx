@@ -340,6 +340,15 @@ const ScheduleView: React.FC = () => {
                             Woche gesperrt
                         </div>
                     )}
+                    {isAdmin && (
+                        <button
+                            onClick={() => updateWeekStatus(year, weekNumber, isWeekOpen ? WeekStatus.LOCKED : WeekStatus.OPEN)}
+                            className="px-3 py-2 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600"
+                            title={isWeekOpen ? 'Diese Woche für Änderungen sperren' : 'Diese Woche wieder öffnen'}
+                        >
+                            {isWeekOpen ? 'Woche sperren' : 'Woche öffnen'}
+                        </button>
+                    )}
                     {isAdmin ? (
                         <button onClick={() => setShowAdmin(true)} className="px-3 py-2 rounded-md bg-slate-700 text-white hover:bg-slate-800 transition shadow">
                             Admin
@@ -357,7 +366,7 @@ const ScheduleView: React.FC = () => {
 
             {/* Admin Modal */}
             {isAdmin && (
-                <AdminModal open={showAdmin} onClose={() => setShowAdmin(false)} currentMonday={daysOfWeek[0]} daysOfWeek={daysOfWeek} />
+                <AdminModal open={showAdmin} onClose={() => setShowAdmin(false)} currentMonday={daysOfWeek[0]} />
             )}
 
             {calLoading && (

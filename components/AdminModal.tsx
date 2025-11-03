@@ -28,8 +28,8 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
   </div>
 );
 
-const AdminModal: React.FC<{ open: boolean; onClose: () => void; currentMonday: Date; daysOfWeek: Date[] }>
-= ({ open, onClose, currentMonday, daysOfWeek }) => {
+const AdminModal: React.FC<{ open: boolean; onClose: () => void; currentMonday: Date }>
+= ({ open, onClose, currentMonday }) => {
   const { user } = useAuth();
   const toast = useToast();
   const {
@@ -128,74 +128,7 @@ const AdminModal: React.FC<{ open: boolean; onClose: () => void; currentMonday: 
 
         {/* Body */}
         <div className="px-4 pb-4 max-h-[70vh] overflow-auto space-y-6">
-          {/* Woche */}
-          {active === 'Woche' && (
-            <div className="space-y-3">
-              <Section title={`Kalenderwoche ${weekNumber}/${year}`}>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs border ${isWeekOpen? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                    {isWeekOpen ? 'Offen' : 'Gesperrt'}
-                  </span>
-                  {isAdmin && (
-                    <button onClick={() => updateWeekStatus(year, weekNumber, isWeekOpen ? WeekStatus.LOCKED : WeekStatus.OPEN)}
-                      className="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 border border-gray-300 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600">{isWeekOpen ? 'Woche sperren' : 'Woche öffnen'}</button>
-                  )}
-                </div>
-              </Section>
-            </div>
-          )}
-
-          {/* Abwesenheit */}
-          {active === 'Abwesenheit' && (
-            <div className="space-y-3">
-              <Section title="Abwesenheit für Zeitraum eintragen">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <FieldLabel label="Benutzer" />
-                    <select value={absUser} onChange={e=>setAbsUser(e.target.value)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600">
-                      <option value="">— auswählen —</option>
-                      {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <FieldLabel label="Typ" />
-                    <select value={absType} onChange={e=>setAbsType(e.target.value as AbsenceType)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600">
-                      <option value="SICK">Krank</option>
-                      <option value="VACATION">Urlaub</option>
-                      <option value="SEMINAR">Seminar</option>
-                    </select>
-                  </div>
-                  <div>
-                    <FieldLabel label="Start" />
-                    <input type="date" value={absStart} onChange={e=>setAbsStart(e.target.value)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
-                  </div>
-                  <div>
-                    <FieldLabel label="Ende" />
-                    <input type="date" value={absEnd} onChange={e=>setAbsEnd(e.target.value)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
-                  </div>
-                  <div>
-                    <FieldLabel label="Teil" />
-                    <select value={absPart} onChange={e=>setAbsPart(e.target.value as AbsencePart)} className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600">
-                      <option value="FULL">Ganzer Tag</option>
-                      <option value="AM">Vormittag</option>
-                      <option value="PM">Nachmittag</option>
-                    </select>
-                  </div>
-                  <div>
-                    <FieldLabel label="Notiz (optional)" />
-                    <input type="text" value={absNote} onChange={e=>setAbsNote(e.target.value)} placeholder="z. B. Attest, Info"
-                      className="w-full mt-1 px-2 py-1.5 rounded border border-gray-300 bg-white dark:bg-slate-700 dark:border-slate-600" />
-                  </div>
-                </div>
-                <div className="pt-2">
-                  <button disabled={submittingAbs} onClick={submitAbsence}
-                    className="px-3 py-1.5 rounded bg-slate-700 text-white hover:bg-slate-800 disabled:opacity-60">
-                    {submittingAbs? 'Speichern…' : 'Abwesenheit anlegen'}
-                  </button>
-                </div>
-              </Section>
-            </div>
-          )}
+          {/* (Woche und Abwesenheit wurden entfernt; Woche-Sperren jetzt direkt in der Planungsübersicht) */}
 
           {/* Export */}
           {active === 'Export' && (
