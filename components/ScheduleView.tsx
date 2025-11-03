@@ -368,107 +368,103 @@ const ScheduleView: React.FC = () => {
     
     return (
         <div className="bg-white p-4 sm:p-6 rounded-lg shadow-lg">
-            <div className="sticky top-0 z-10 bg-white/90 dark:bg-slate-800/90 backdrop-blur supports-[backdrop-filter]:backdrop-blur rounded-md -m-4 sm:-m-6 p-4 sm:p-6 mb-4 border-b border-gray-100 dark:border-slate-700">
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    {/* Links: Woche ±1 + KW + Datumsspanne */}
-                    <div className="flex items-center gap-2 sm:gap-4">
-                        <button onClick={() => changeWeek('prev')} className="p-2 rounded-full hover:bg-gray-200 transition" aria-label="Vorige Woche">
-                            <ChevronLeftIcon className="h-6 w-6 text-gray-600" />
+            {/* NEO HEADER */}
+            <div className="relative sticky top-0 z-20 -m-4 sm:-m-6 p-3 sm:p-4 bg-white/60 dark:bg-slate-900/30 backdrop-blur-lg ring-1 ring-black/5 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+                {/* Accent gradient line */}
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-emerald-400 opacity-80" />
+                <div className="flex items-center justify-between gap-3">
+                    {/* Left cluster: week nav + pill */}
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <button onClick={() => changeWeek('prev')} aria-label="Vorige Woche" className="group h-9 w-9 grid place-items-center rounded-full bg-white/60 dark:bg-slate-800/50 ring-1 ring-black/5 hover:bg-white/80 transition">
+                            <ChevronLeftIcon className="h-5 w-5 text-slate-700 dark:text-slate-200 group-hover:translate-x-[-1px] transition-transform" />
                         </button>
-                        <div className="flex flex-col items-center sm:items-start">
-                            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 whitespace-nowrap">KW {weekNumber}, {year}</h2>
-                            <span className="text-xs text-gray-500">
-                                {daysOfWeek[0].toLocaleDateString('de-DE')} – {daysOfWeek[4].toLocaleDateString('de-DE')}
-                            </span>
+                        <div className="hidden sm:block h-9 w-px bg-gradient-to-b from-transparent via-slate-200/80 to-transparent dark:via-slate-700/60" />
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-slate-50/80 to-white/70 dark:from-slate-800/60 dark:to-slate-900/40 ring-1 ring-slate-200/70 dark:ring-slate-700/60">
+                            <span className="text-xs font-semibold tracking-wide text-slate-700 dark:text-slate-200">KW {weekNumber}</span>
+                            <span className="text-[11px] text-slate-500 dark:text-slate-400">{year}</span>
+                            <span className="hidden md:inline text-[11px] text-slate-400 dark:text-slate-500">{daysOfWeek[0].toLocaleDateString('de-DE')} – {daysOfWeek[4].toLocaleDateString('de-DE')}</span>
                         </div>
-                        <button onClick={() => changeWeek('next')} className="p-2 rounded-full hover:bg-gray-200 transition" aria-label="Nächste Woche">
-                            <ChevronRightIcon className="h-6 w-6 text-gray-600" />
+                        <button onClick={() => changeWeek('next')} aria-label="Nächste Woche" className="group h-9 w-9 grid place-items-center rounded-full bg-white/60 dark:bg-slate-800/50 ring-1 ring-black/5 hover:bg-white/80 transition">
+                            <ChevronRightIcon className="h-5 w-5 text-slate-700 dark:text-slate-200 group-hover:translate-x-[1px] transition-transform" />
                         </button>
                     </div>
 
-                    {/* Rechts: Statuschip + Lock‑Toggle + Export + Admin */}
-                    <div className="flex items-center gap-2">
-                        <div
-                            className={`flex items-center text-xs font-semibold px-3 py-1.5 rounded-full border ${
-                                isWeekOpen
-                                    ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-                                    : 'text-amber-700 bg-amber-50 border-amber-200'
-                            }`}
-                            aria-live="polite"
-                        >
-                            {isWeekOpen ? 'Woche offen' : 'Woche gesperrt'}
+                    {/* Center cluster: status + conflicts */}
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <div className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full ring-1 ${
+                            isWeekOpen
+                                ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-50/80 ring-emerald-200/80'
+                                : 'text-amber-700 dark:text-amber-300 bg-amber-50/80 ring-amber-200/80'
+                        }`} aria-live="polite">
+                            <span className={`inline-block h-1.5 w-1.5 rounded-full ${isWeekOpen ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                            {isWeekOpen ? 'offen' : 'gesperrt'}
                         </div>
 
-                        {/* Konflikt-Badge */}
                         {conflictCount > 0 && (
-                            <button
-                                onClick={() => setShowConflicts(true)}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-rose-50 text-rose-700 border border-rose-200"
-                                title="Konflikte und offene Anfragen"
-                            >
+                            <button onClick={() => setShowConflicts(true)} title="Konflikte und offene Anfragen"
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-rose-50/90 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-50 active:scale-[0.98] transition">
                                 <ExclamationIcon className="h-4 w-4" /> {conflictCount}
                             </button>
                         )}
+                    </div>
 
-                        {/* Lock-Toggle (Admin) */}
+                    {/* Right cluster: actions */}
+                    <div className="flex items-center gap-2 sm:gap-3">
                         {isAdmin && (
-                            <button
-                                onClick={handleToggleWeek}
-                                title={isWeekOpen ? 'Diese Woche für Änderungen sperren' : 'Diese Woche wieder öffnen'}
-                                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white text-gray-800 hover:bg-gray-50 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600"
-                                aria-pressed={!isWeekOpen}
-                            >
-                                {isWeekOpen ? <LockClosedIcon className="h-4 w-4" /> : <LockOpenIcon className="h-4 w-4" />}
-                                <span>{isWeekOpen ? 'Sperren' : 'Öffnen'}</span>
+                            <button onClick={handleToggleWeek} aria-pressed={!isWeekOpen}
+                                    title={isWeekOpen ? 'Diese Woche sperren' : 'Diese Woche öffnen'}
+                                    className="group inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-white/70 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-white/90 dark:hover:bg-slate-800 transition">
+                                {isWeekOpen ? (
+                                    <LockClosedIcon className="h-4 w-4 text-slate-700 dark:text-slate-200 group-active:scale-95 transition" />
+                                ) : (
+                                    <LockOpenIcon className="h-4 w-4 text-slate-700 dark:text-slate-200 group-active:scale-95 transition" />
+                                )}
+                                <span className="hidden sm:inline text-sm text-slate-800 dark:text-slate-100">{isWeekOpen ? 'Sperren' : 'Öffnen'}</span>
                             </button>
                         )}
 
-                        {/* Undo-Button temporär nach Toggle */}
                         {undoWeek && (
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        await updateWeekStatus(undoWeek.year, undoWeek.weekNumber, undoWeek.prev);
-                                        setUndoWeek(null);
-                                        toast.success('Änderung rückgängig gemacht');
-                                    } catch (e: any) {
-                                        toast.error(e?.message || 'Fehler beim Rückgängig machen');
-                                    }
-                                }}
-                                className="text-xs px-2 py-1 rounded border border-gray-300 bg-white hover:bg-gray-50"
-                            >
+                            <button onClick={async () => { try { await updateWeekStatus(undoWeek.year, undoWeek.weekNumber, undoWeek.prev); setUndoWeek(null); toast.success('Änderung rückgängig gemacht'); } catch (e: any) { toast.error(e?.message || 'Fehler beim Rückgängig machen'); } }}
+                                    className="inline-flex items-center gap-1 h-9 px-3 rounded-lg bg-white/70 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-white/90 dark:hover:bg-slate-800 text-[11px]">
                                 Rückgängig
                             </button>
                         )}
 
-                        {/* Export-Dropdown (für alle) */}
+                        {/* Export menu */}
                         <div className="relative" ref={exportWrap}>
-                            <button
-                                onClick={() => setExportOpen(v => !v)}
-                                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 dark:bg-slate-700 dark:text-gray-100 dark:border-slate-600"
-                                aria-haspopup="menu"
-                                aria-expanded={exportOpen}
-                            >
-                                <span>Export</span>
+                            <button onClick={() => setExportOpen(v => !v)} aria-haspopup="menu" aria-expanded={exportOpen}
+                                    className="group inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-white/70 dark:bg-slate-800/60 ring-1 ring-slate-200 dark:ring-slate-700 hover:bg-white/90 dark:hover:bg-slate-800 transition">
+                                <span className="text-sm text-slate-800 dark:text-slate-100">Export</span>
+                                <svg className="h-3.5 w-3.5 text-slate-500 group-aria-expanded:rotate-180 transition" viewBox="0 0 20 20" fill="currentColor" aria-hidden>
+                                    <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 10.94l3.71-3.71a.75.75 0 111.06 1.06l-4.24 4.24a.75.75 0 01-1.06 0L5.21 8.29a.75.75 0 01.02-1.08z" clipRule="evenodd" />
+                                </svg>
                             </button>
                             {exportOpen && (
-                                <div role="menu" className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 dark:bg-slate-800 dark:border-slate-700 rounded-md shadow-lg z-20 p-1">
-                                    <button role="menuitem" onClick={copyUrl} disabled={!calendarUrl} className="w-full text-left px-3 py-2 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-slate-700">Link kopieren</button>
-                                    {calendarUrl ? (
-                                        <a role="menuitem" href={calendarUrl} target="_blank" rel="noreferrer" className="block px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700">Öffnen</a>
-                                    ) : (
-                                        <button role="menuitem" onClick={handleExport} className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700">Erzeugen & Öffnen</button>
-                                    )}
-                                    {isAdmin && (
-                                        <button role="menuitem" onClick={handleRegenerate} className="w-full text-left px-3 py-2 hover:bg-gray-50 dark:hover:bg-slate-700">Neu generieren</button>
-                                    )}
+                                <div role="menu" className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-white/95 dark:bg-slate-900/95 ring-1 ring-black/5 shadow-xl overflow-hidden">
+                                    <div className="py-1">
+                                        <button role="menuitem" onClick={copyUrl} disabled={!calendarUrl}
+                                                className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 disabled:opacity-40 hover:bg-slate-50/80 dark:hover:bg-slate-800/70">
+                                            Link kopieren
+                                        </button>
+                                        {calendarUrl ? (
+                                            <a role="menuitem" href={calendarUrl} target="_blank" rel="noreferrer"
+                                               className="block px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50/80 dark:hover:bg-slate-800/70">Öffnen</a>
+                                        ) : (
+                                            <button role="menuitem" onClick={handleExport}
+                                                    className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50/80 dark:hover:bg-slate-800/70">Erzeugen & Öffnen</button>
+                                        )}
+                                        {isAdmin && (
+                                            <button role="menuitem" onClick={handleRegenerate}
+                                                    className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50/80 dark:hover:bg-slate-800/70">Neu generieren</button>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Admin-Modal Button */}
                         {isAdmin && (
-                            <button onClick={() => setShowAdmin(true)} className="px-3 py-2 rounded-md bg-slate-700 text-white hover:bg-slate-800 transition shadow">
+                            <button onClick={() => setShowAdmin(true)}
+                                    className="inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-gradient-to-r from-cyan-500 to-fuchsia-500 text-white shadow hover:opacity-95 active:scale-[0.98] transition">
                                 Admin
                             </button>
                         )}
