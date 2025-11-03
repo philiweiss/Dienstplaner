@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { checkUser } from '../services/auth';
+import { startPasskeyLogin, finishPasskeyLogin } from '../services/auth';
 
 type Step = 'username' | 'password' | 'setPassword';
 
