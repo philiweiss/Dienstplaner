@@ -423,6 +423,14 @@ const UserManagement: React.FC = () => {
     const { users, addUser, deleteUser, updateUser } = useSchedule();
     const [newUser, setNewUser] = useState({ name: '', role: Role.USER });
 
+    // Modern additions
+    const [search, setSearch] = useState('');
+    const [roleFilter, setRoleFilter] = useState<'ALL' | Role>("ALL");
+    const [sortAsc, setSortAsc] = useState(true);
+
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editForm, setEditForm] = useState<{ name: string; role: Role; birthday: string | null; anniversary: string | null; pw1?: string; pw2?: string } | null>(null);
+
     const handleAddUser = (e: React.FormEvent) => {
         e.preventDefault();
         if (newUser.name) {
@@ -430,10 +438,49 @@ const UserManagement: React.FC = () => {
             setNewUser({ name: '', role: Role.USER });
         }
     };
-    
+
+    const filtered = useMemo(() => {
+        let list = [...users];
+        if (search.trim()) {
+            const q = search.trim().toLowerCase();
+            list = list.filter(u => u.name.toLowerCase().includes(q));
+        }
+        if (roleFilter !== 'ALL') {
+            list = list.filter(u => u.role === roleFilter);
+        }
+        list.sort((a,b) => sortAsc ? a.name.localeCompare(b.name, 'de') : b.name.localeCompare(a.name, 'de'));
+        return list;
+    }, [users, search, roleFilter, sortAsc]);
+
+    const startEdit = (u: User) => {
+        setEditingId(u.id);
+        setEditForm({ name: u.name, role: u.role, birthday: u.birthday || null, anniversary: u.anniversary || null });
+    };
+    const cancelEdit = () => { setEditingId(null); setEditForm(null); };
+
+    const saveEdit = async (id: string) => {
+        if (!editForm) return;
+        if (editForm.name.trim().length === 0) { alert('Name darf nicht leer sein.'); return; }
+        const dateRe = /^\d{4}-\d{2}-\d{2}$/;
+        if (editForm.birthday && !dateRe.test(editForm.birthday)) { alert('Geburtstag bitte als YYYY-MM-DD eingeben.'); return; }
+        if (editForm.anniversary && !dateRe.test(editForm.anniversary)) { alert('Jubiläum bitte als YYYY-MM-DD eingeben.'); return; }
+        try {
+            await updateUser(id, { name: editForm.name, role: editForm.role, birthday: editForm.birthday || null, anniversary: editForm.anniversary || null });
+            if (editForm.pw1) {
+                if ((editForm.pw1 || '').length < 8) { alert('Passwort muss mindestens 8 Zeichen lang sein.'); return; }
+                if (editForm.pw1 !== editForm.pw2) { alert('Passwörter stimmen nicht überein.'); return; }
+                await adminResetPassword({ userId: id }, editForm.pw1);
+            }
+            cancelEdit();
+        } catch (e: any) {
+            alert(e?.message || 'Änderungen konnten nicht gespeichert werden.');
+        }
+    };
+
     return (
-        <div>
-             <form onSubmit={handleAddUser} className="p-4 bg-gray-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg mb-6 grid grid-cols-1 md:grid-cols-3 gap-4 items-end transition-colors">
+        <div className="space-y-4">
+            {/* Create & Filter Bar */}
+            <form onSubmit={handleAddUser} className="p-4 bg-gray-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg grid grid-cols-1 md:grid-cols-5 gap-4 items-end transition-colors">
                 <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Benutzername</label>
                     <input type="text" value={newUser.name} onChange={e => setNewUser({...newUser, name: e.target.value})} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" required />
@@ -447,89 +494,99 @@ const UserManagement: React.FC = () => {
                         onChange={(val) => setNewUser({...newUser, role: val as Role})}
                     />
                 </div>
-                <div className="md:col-span-full">
-                    <button type="submit" className="w-full md:w-auto bg-slate-700 text-white p-2 px-4 rounded-md font-semibold hover:bg-slate-800 flex items-center justify-center">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Suche</label>
+                    <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Name…" className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Filter</label>
+                    <SelectList
+                        ariaLabel="Rolle filtern"
+                        options={[{label:'Alle', value:'ALL'},{label:'User', value: Role.USER},{label:'Admin', value: Role.ADMIN}]}
+                        value={roleFilter}
+                        onChange={(val) => setRoleFilter(val as any)}
+                    />
+                </div>
+                <div className="md:col-span-full flex flex-wrap gap-2 items-center">
+                    <button type="submit" className="bg-slate-700 text-white p-2 px-4 rounded-md font-semibold hover:bg-slate-800 flex items-center justify-center">
                         <PlusIcon className="h-5 w-5 mr-2" /> Benutzer hinzufügen
+                    </button>
+                    <button type="button" onClick={() => setSortAsc(s => !s)} className="px-3 py-2 rounded-md text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                        Sortierung: {sortAsc ? 'A→Z' : 'Z→A'}
                     </button>
                 </div>
             </form>
+
+            {/* List */}
             <div className="space-y-3">
-                {users.map(user => (
-                    <div key={user.id} className="p-3 bg-white rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center shadow-sm gap-2">
-                        <div>
-                            <p className="font-semibold text-gray-800">{user.name}</p>
-                            <p className="text-sm text-gray-500">{user.role}</p>
-                            <div className="mt-1 text-xs text-gray-600 space-x-2">
-                                <span>🎂 {user.birthday || '—'}</span>
-                                <span>🎉 {user.anniversary || '—'}</span>
-                            </div>
+                {filtered.length === 0 && (
+                    <div className="p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-600 dark:text-slate-300">Keine Nutzer gefunden.</div>
+                )}
+                {filtered.map(u => {
+                    const isEditing = editingId === u.id && editForm;
+                    return (
+                        <div key={u.id} className="p-3 bg-white dark:bg-slate-900/60 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
+                            {!isEditing ? (
+                                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                                    <div>
+                                        <p className="font-semibold text-gray-800 dark:text-gray-100">{u.name}</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">{u.role}</p>
+                                        <div className="mt-1 text-xs text-gray-600 dark:text-gray-400 space-x-2">
+                                            <span>🎂 {u.birthday || '—'}</span>
+                                            <span>🎉 {u.anniversary || '—'}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
+                                        <button onClick={() => startEdit(u)} className="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600 text-sm">Bearbeiten</button>
+                                        <button onClick={() => window.confirm(`Benutzer "${u.name}" wirklich löschen?`) && deleteUser(u.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full" title="Benutzer löschen">
+                                            <TrashIcon className="h-5 w-5" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
+                                            <input type="text" value={editForm!.name} onChange={e => setEditForm(f => f ? {...f, name: e.target.value} : f)} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Rolle</label>
+                                            <SelectList
+                                                ariaLabel="Rolle setzen"
+                                                options={[{label:'User', value: Role.USER},{label:'Admin', value: Role.ADMIN}]}
+                                                value={editForm!.role}
+                                                onChange={(val) => setEditForm(f => f ? {...f, role: val as Role} : f)}
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Geburtstag</label>
+                                            <input type="text" placeholder="YYYY-MM-DD" value={editForm!.birthday || ''} onChange={e => setEditForm(f => f ? {...f, birthday: e.target.value || null} : f)} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Jubiläum</label>
+                                            <input type="text" placeholder="YYYY-MM-DD" value={editForm!.anniversary || ''} onChange={e => setEditForm(f => f ? {...f, anniversary: e.target.value || null} : f)} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Neues Passwort (optional)</label>
+                                            <input type="password" value={editForm!.pw1 || ''} onChange={e => setEditForm(f => f ? {...f, pw1: e.target.value} : f)} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" placeholder="mind. 8 Zeichen" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Wiederholen</label>
+                                            <input type="password" value={editForm!.pw2 || ''} onChange={e => setEditForm(f => f ? {...f, pw2: e.target.value} : f)} className="mt-1 block w-full rounded-md border border-gray-300 dark:border-slate-600 shadow-sm bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 sm:text-sm p-2 transition-colors" />
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={() => saveEdit(u.id)} className="px-3 py-2 text-sm rounded-md bg-slate-700 text-white hover:bg-slate-800">Speichern</button>
+                                        <button type="button" onClick={cancelEdit} className="px-3 py-2 text-sm rounded-md bg-gray-200 hover:bg-gray-300 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600">Abbrechen</button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 self-end sm:self-center">
-                            <button
-                                onClick={async () => {
-                                    const newName = window.prompt('Neuen Namen eingeben', user.name)?.trim();
-                                    if (!newName) return;
-                                    if (newName.length < 1) { alert('Name darf nicht leer sein.'); return; }
-                                    try {
-                                        updateUser(user.id, { name: newName });
-                                    } catch (e: any) {
-                                        alert(e?.message || 'Name konnte nicht geändert werden.');
-                                    }
-                                }}
-                                className="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-sm"
-                                title="Namen ändern"
-                            >Namen ändern</button>
-                            <button
-                                onClick={async () => {
-                                    const newBirthday = window.prompt('Geburtstag (YYYY-MM-DD) eingeben. Leer lassen für Entfernen.', user.birthday || '')?.trim();
-                                    if (newBirthday === undefined) return;
-                                    if (newBirthday && !/^\d{4}-\d{2}-\d{2}$/.test(newBirthday)) { alert('Bitte im Format YYYY-MM-DD eingeben.'); return; }
-                                    try {
-                                        updateUser(user.id, { birthday: newBirthday || null });
-                                    } catch (e: any) {
-                                        alert(e?.message || 'Geburtstag konnte nicht gespeichert werden.');
-                                    }
-                                }}
-                                className="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-sm"
-                                title="Geburtstag setzen"
-                            >🎂 setzen</button>
-                            <button
-                                onClick={async () => {
-                                    const newAnniv = window.prompt('Jubiläum (YYYY-MM-DD) eingeben. Leer lassen für Entfernen.', user.anniversary || '')?.trim();
-                                    if (newAnniv === undefined) return;
-                                    if (newAnniv && !/^\d{4}-\d{2}-\d{2}$/.test(newAnniv)) { alert('Bitte im Format YYYY-MM-DD eingeben.'); return; }
-                                    try {
-                                        updateUser(user.id, { anniversary: newAnniv || null });
-                                    } catch (e: any) {
-                                        alert(e?.message || 'Jubiläum konnte nicht gespeichert werden.');
-                                    }
-                                }}
-                                className="px-3 py-1.5 rounded bg-gray-100 hover:bg-gray-200 text-sm"
-                                title="Jubiläum setzen"
-                            >🎉 setzen</button>
-                            <button
-                                onClick={async () => {
-                                    const pw1 = window.prompt('Neues Passwort (mind. 8 Zeichen)') || '';
-                                    if (!pw1) return;
-                                    if (pw1.length < 8) { alert('Passwort muss mindestens 8 Zeichen lang sein.'); return; }
-                                    const pw2 = window.prompt('Neues Passwort wiederholen') || '';
-                                    if (pw1 !== pw2) { alert('Passwörter stimmen nicht überein.'); return; }
-                                    try {
-                                        await adminResetPassword({ userId: user.id }, pw1);
-                                        alert('Passwort zurückgesetzt. Gilt ab sofort.');
-                                    } catch (e: any) {
-                                        alert(e?.message || 'Passwort konnte nicht zurückgesetzt werden.');
-                                    }
-                                }}
-                                className="px-3 py-1.5 rounded bg-amber-600 text-white hover:bg-amber-700 text-sm"
-                                title="Passwort zurücksetzen"
-                            >Passwort zurücksetzen</button>
-                            <button onClick={() => window.confirm(`Benutzer \"${user.name}\" wirklich löschen?`) && deleteUser(user.id)} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-100 rounded-full" title="Benutzer löschen">
-                                <TrashIcon className="h-5 w-5" />
-                            </button>
-                        </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
         </div>
     );
