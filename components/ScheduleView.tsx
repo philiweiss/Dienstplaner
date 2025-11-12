@@ -308,6 +308,13 @@ const ScheduleView: React.FC = () => {
         return c;
     }, [handoversAdmin, handoversIncoming, daysOfWeek, shiftTypes, assignments, getEffectiveShiftLimits]);
 
+    const lateTodayCount = useMemo(() => {
+        const today = new Date().toISOString().slice(0,10);
+        try {
+            return lateArrivals.filter(l => l.date === today).length;
+        } catch { return 0; }
+    }, [lateArrivals]);
+
     // Woche sperren/öffnen mit Undo-Status
     const handleToggleWeek = async () => {
         const next = isWeekOpen ? WeekStatus.LOCKED : WeekStatus.OPEN;
