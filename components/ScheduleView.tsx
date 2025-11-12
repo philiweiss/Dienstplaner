@@ -910,6 +910,43 @@ const ScheduleView: React.FC = () => {
                                                                     Übergeben
                                                                 </button>
                                                             )}
+                                                            {user?.id === assignedUser.id && isWeekOpen && (() => {
+                                                                const existing = getLate(dateString, shiftType.id, assignedUser.id);
+                                                                const onSetLate = async () => {
+                                                                    try {
+                                                                        const time = prompt('Wann kommst du voraussichtlich? Bitte im Format HH:mm angeben (z. B. 09:15).', existing?.arriveTime || '');
+                                                                        if (!time) return; // cancelled
+                                                                        if (!/^\d{2}:\d{2}$/.test(time)) { toast.error('Ungültige Zeit. Bitte HH:mm angeben.'); return; }
+                                                                        const reasonIndex = prompt('Grund wählen:\n1) Verkehr\n2) Arzt\n3) Kind/Betreuung\n4) Öffis\n5) Wetter\n6) Sonstiges', existing ? (LATE_REASONS.findIndex(r => r.key === (existing.reason as any)) + 1).toString() : '1');
+                                                                        if (!reasonIndex) return;
+                                                                        const idx = parseInt(reasonIndex, 10);
+                                                                        const reason = (LATE_REASONS[idx - 1]?.key as any) as LateReasonKey;
+                                                                        if (!reason) { toast.error('Ungültige Auswahl.'); return; }
+                                                                        const note = prompt('Optionale Notiz hinzufügen (Enter für keine):', existing?.note || '') || null;
+                                                                        await addLateArrival({ date: dateString, shiftTypeId: shiftType.id, userId: assignedUser.id, arriveTime: time, reason: reason as any, note });
+                                                                        toast.success('Verspätung gespeichert');
+                                                                    } catch (e: any) {
+                                                                        toast.error(e?.message || 'Konnte Verspätung nicht speichern');
+                                                                    }
+                                                                };
+                                                                const onRemoveLate = async () => {
+                                                                    if (!existing) return;
+                                                                    if (!confirm('Verspätungs-Meldung entfernen?')) return;
+                                                                    try { await removeLateArrival(existing.id); toast.success('Verspätung entfernt'); } catch (e: any) { toast.error(e?.message || 'Löschen fehlgeschlagen'); }
+                                                                };
+                                                                return (
+                                                                    <div className="flex items-center gap-1">
+                                                                        <button onClick={onSetLate} className="text-amber-700 hover:text-amber-900 text-xs font-semibold underline px-1" title={existing ? 'Verspätung ändern' : 'Ich komme später'}>
+                                                                            {existing ? 'Später ändern' : 'Ich komme später'}
+                                                                        </button>
+                                                                        {existing && (
+                                                                            <button onClick={onRemoveLate} className="text-amber-600 hover:text-amber-800 p-1" title="Verspätung entfernen">
+                                                                                <TrashIcon className="h-3.5 w-3.5" />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </div>
                                                     );
