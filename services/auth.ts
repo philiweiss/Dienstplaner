@@ -49,32 +49,3 @@ export async function adminDeletePassword(userId: string): Promise<{ ok: boolean
     body: JSON.stringify({ userId })
   });
 }
-
-// Passkeys / WebAuthn
-export async function startPasskeyRegistration(): Promise<any> {
-  return jsonFetch(`/api/auth/passkey/register/start`, { method: 'POST', body: JSON.stringify({}) });
-}
-export async function finishPasskeyRegistration(credential: any): Promise<{ ok: boolean }> {
-  return jsonFetch(`/api/auth/passkey/register/finish`, { method: 'POST', body: JSON.stringify(credential) });
-}
-export async function startPasskeyLogin(username: string): Promise<any> {
-  return jsonFetch(`/api/auth/passkey/login/start`, { method: 'POST', body: JSON.stringify({ username }) });
-}
-export async function finishPasskeyLogin(userId: string, credential: any): Promise<{ user: User; token: string }> {
-  return jsonFetch(`/api/auth/passkey/login/finish`, { method: 'POST', body: JSON.stringify({ userId, credential }) });
-}
-
-// Magic Links
-export async function requestMagicLink(username: string): Promise<{ ok: boolean; devLink?: string }> {
-  return jsonFetch(`/api/auth/magic/start`, {
-    method: 'POST',
-    body: JSON.stringify({ username })
-  });
-}
-
-export async function verifyMagicToken(token: string): Promise<{ user: User; token: string }> {
-  return jsonFetch(`/api/auth/magic/verify`, {
-    method: 'POST',
-    body: JSON.stringify({ token })
-  });
-}
