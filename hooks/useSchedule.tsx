@@ -8,6 +8,7 @@ import * as weekOverridesApi from '../services/weekOverrides';
 import * as handoverApi from '../services/handovers';
 import * as absencesApi from '../services/absences';
 import * as dayNotesApi from '../services/dayNotes';
+import * as lateApi from '../services/lateArrivals';
 
 interface ScheduleContextType {
     users: User[];

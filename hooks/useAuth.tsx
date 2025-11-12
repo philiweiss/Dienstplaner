@@ -1,6 +1,6 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { User } from '../types';
-import { login as apiLogin, loginPassword as apiLoginPassword, setPassword as apiSetPassword, requestMagicLink as apiRequestMagicLink, verifyMagicToken as apiVerifyMagicToken } from '../services/auth';
+import { login as apiLogin, loginPassword as apiLoginPassword, setPassword as apiSetPassword } from '../services/auth';
 import { setAuthToken, getAuthToken } from '../services/api';
 
 interface AuthContextType {
@@ -11,11 +11,6 @@ interface AuthContextType {
     loginWithPassword: (username: string, password: string) => Promise<boolean>;
     // Complete initial setup: set password and log the user in
     setInitialPasswordAndLogin: (username: string, password: string) => Promise<boolean>;
-    // Magic link helpers
-    requestMagicLink: (username: string) => Promise<{ ok: boolean; devLink?: string }>;
-    verifyMagicToken: (token: string) => Promise<boolean>;
-    // Complete login using externally obtained token (e.g., Passkey)
-    loginWithToken: (user: User, token: string) => void;
     // Remembered username helpers
     getRememberedUsername: () => string | null;
     setRememberedUsername: (name: string | null) => void;
@@ -81,30 +76,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return false;
     };
 
-    const requestMagicLink = async (username: string): Promise<{ ok: boolean; devLink?: string }> => {
-        const res = await apiRequestMagicLink(username.trim());
-        if (res?.ok) setRememberedUsername(username);
-        return res as any;
-    };
-
-    const verifyMagicToken = async (token: string): Promise<boolean> => {
-        try {
-            const res = await apiVerifyMagicToken(token);
-            if (res && res.user && res.token) {
-                setUser(res.user as User);
-                setAuthToken(res.token);
-                setRememberedUsername(res.user.name);
-                return true;
-            }
-        } catch (_e) {}
-        return false;
-    };
-
-    const loginWithToken = (u: User, token: string) => {
-        setUser(u);
-        setAuthToken(token);
-        setRememberedUsername(u.name);
-    };
 
     const logout = () => {
         setUser(null);

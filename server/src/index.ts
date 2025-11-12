@@ -16,6 +16,7 @@ import absencesRouter from './routes/absences.js';
 import statsRouter from './routes/stats.js';
 import dayNotesRouter from './routes/dayNotes.js';
 import changesRouter from './routes/changes.js';
+import lateArrivalsRouter from './routes/lateArrivals.js';
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use('/api/absences', absencesRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/day-notes', dayNotesRouter);
 app.use('/api/changes', changesRouter);
+app.use('/api/late-arrivals', lateArrivalsRouter);
 
 // SPA fallback for all non-API GET requests
 app.get('*', (req, res) => {
