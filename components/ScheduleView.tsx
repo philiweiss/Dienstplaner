@@ -422,6 +422,12 @@ const ScheduleView: React.FC = () => {
                                 <ExclamationIcon className="h-4 w-4" /> {conflictCount}
                             </button>
                         )}
+                        {lateTodayCount > 0 && (
+                            <span title="Heute gemeldete Verspätungen"
+                                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] bg-amber-50/90 text-amber-700 ring-1 ring-amber-200">
+                                <ClockIcon className="h-4 w-4" /> {lateTodayCount}
+                            </span>
+                        )}
                     </div>
 
                     {/* Right cluster: actions */}
