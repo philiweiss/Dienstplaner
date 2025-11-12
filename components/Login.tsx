@@ -250,7 +250,7 @@ const Login: React.FC = () => {
 
                 <div className="text-center text-xs text-gray-500 p-4 border-t mt-4">
                     <p className="font-semibold">Hinweis</p>
-                    <p>Erster Login erfolgt über den Namen. Danach ist ein Passwort erforderlich. Passkeys folgen als Option.</p>
+                    <p>Erster Login erfolgt über den Namen. Danach ist ein Passwort erforderlich.</p>
                 </div>
             </div>
         </div>
