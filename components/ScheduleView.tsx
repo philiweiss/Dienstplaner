@@ -5,7 +5,7 @@ import { useSchedule } from '../hooks/useSchedule';
 import { useToast } from '../hooks/useToast';
 import { Role, WeekStatus, User, AbsenceType, AbsencePart, Absence } from '../types';
 import { getOrCreateCalendarUrl, regenerateCalendarUrl } from '../services/calendar';
-import { ChevronLeftIcon, ChevronRightIcon, LockClosedIcon, PlusIcon, TrashIcon, ExclamationIcon, LockOpenIcon } from './icons';
+import { ChevronLeftIcon, ChevronRightIcon, LockClosedIcon, PlusIcon, TrashIcon, ExclamationIcon, LockOpenIcon, ClockIcon } from './icons';
 
 // Lightweight Avatar component (no backend changes). Uses DiceBear by name as seed with initials fallback.
 const stringToColor = (str: string) => {
