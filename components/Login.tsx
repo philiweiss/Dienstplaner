@@ -49,28 +49,6 @@ const Login: React.FC = () => {
         }
     };
 
-    const handleSendMagicLink = async () => {
-        setError('');
-        setInfo('');
-        setMagicDevLink(null);
-        if (!username.trim()) {
-            setError('Bitte geben Sie zuerst Ihren Namen ein.');
-            return;
-        }
-        setLoading(true);
-        try {
-            const res = await requestMagicLink(username.trim());
-            if (res?.ok) {
-                setInfo('Magic Link gesendet. Bitte prüfen Sie Ihr Postfach.');
-                if (res.devLink) setMagicDevLink(res.devLink);
-                setRememberedUsername?.(username.trim());
-            }
-        } catch (e: any) {
-            setError(e?.message || 'Magic Link konnte nicht gesendet werden.');
-        } finally {
-            setLoading(false);
-        }
-    };
 
     const handlePasswordLogin = async (e: React.FormEvent) => {
         e.preventDefault();
