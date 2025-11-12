@@ -17,29 +17,6 @@ const Login: React.FC = () => {
     useEffect(() => {
         const remembered = getRememberedUsername?.();
         if (remembered) setUsername(remembered);
-        // Auto-consume magic token from URL (?magic=...)
-        const params = new URLSearchParams(window.location.search);
-        const token = params.get('magic');
-        if (token) {
-            (async () => {
-                try {
-                    setLoading(true);
-                    setError('');
-                    setInfo('Anmeldung per Magic Link…');
-                    const ok = await verifyMagicToken(token);
-                    if (!ok) setError('Magic Link ungültig oder abgelaufen.');
-                } finally {
-                    setLoading(false);
-                    setInfo('');
-                    // Clean URL
-                    try {
-                        params.delete('magic');
-                        const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}${window.location.hash || ''}`;
-                        window.history.replaceState({}, '', newUrl);
-                    } catch {}
-                }
-            })();
-        }
     }, []);
 
     const handleUsernameSubmit = async (e: React.FormEvent) => {
