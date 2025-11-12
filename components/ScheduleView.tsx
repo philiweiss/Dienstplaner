@@ -64,6 +64,17 @@ const getWeekNumber = (d: Date): [number, number] => {
     return [d.getUTCFullYear(), weekNo];
 };
 
+const LATE_REASONS = [
+    { key: 'VERKEHR', label: 'Verkehr' },
+    { key: 'ARZT', label: 'Arzt' },
+    { key: 'KIND_BETREUUNG', label: 'Kind/Betreuung' },
+    { key: 'OEFFIS', label: 'Öffis' },
+    { key: 'WETTER', label: 'Wetter' },
+    { key: 'SONSTIGES', label: 'Sonstiges' },
+] as const;
+
+type LateReasonKey = typeof LATE_REASONS[number]['key'];
+
 const AdminAssignControl: React.FC<{
     date: string;
     shiftTypeId: string;
