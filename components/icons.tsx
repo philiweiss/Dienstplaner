@@ -85,3 +85,10 @@ export const BellIcon: React.FC<{ className?: string }> = ({ className }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.657A2 2 0 0113 19H7a2 2 0 01-1.857-1.343L3.143 13A2 2 0 015 10h.208A6.002 6.002 0 0111 4c3.314 0 6 2.686 6 6v.172l1.553 3.882A1 1 0 0117.622 15H16v1a2 2 0 01-1.143 1.657zM11 21a3 3 0 003-3H8a3 3 0 003 3z" />
   </svg>
 );
+
+export const ClockIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <circle cx="12" cy="12" r="9" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 7v5l3 3" />
+  </svg>
+);
