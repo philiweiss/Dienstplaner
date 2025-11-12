@@ -22,7 +22,6 @@ const Login: React.FC = () => {
     const handleUsernameSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-        setInfo('');
         setLoading(true);
         setRememberedUsername?.(username.trim());
         try {
