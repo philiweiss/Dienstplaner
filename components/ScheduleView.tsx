@@ -231,7 +231,7 @@ const ScheduleView: React.FC = () => {
     const [showConflicts, setShowConflicts] = useState(false);
     const { user } = useAuth();
     const toast = useToast();
-    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, handoversAdmin, refreshHandovers, requestHandover, respondHandover, approveHandover, declineHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, addAbsenceRange, removeAbsence, dayNotes, setDayNote, removeDayNote, updateWeekStatus, updateWeekOverride, addShiftType, updateShiftType, deleteShiftType, addUser, updateUser, deleteUser } = useSchedule();
+    const { users, shiftTypes, assignments, weekConfigs, assignShift, unassignShift, handoversIncoming, handoversOutgoing, handoversAdmin, refreshHandovers, requestHandover, respondHandover, approveHandover, declineHandover, getEffectiveShiftLimits, absences, isUserAbsent, addAbsence, addAbsenceRange, removeAbsence, dayNotes, setDayNote, removeDayNote, updateWeekStatus, updateWeekOverride, addShiftType, updateShiftType, deleteShiftType, addUser, updateUser, deleteUser, lateArrivals, getLate, addLateArrival, removeLateArrival } = useSchedule();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [transferModal, setTransferModal] = useState<{ open: boolean; date: string; shiftTypeId: string; toUserId: string } | null>(null);
     const [noteEditor, setNoteEditor] = useState<{ date: string; text: string; adminOnly: boolean } | null>(null);
