@@ -5,7 +5,7 @@ import type { RowDataPacket } from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
 import { signToken, requireAuth } from '../middleware/auth.js';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomBytes } from 'crypto';
 
 const router = Router();
 
@@ -311,6 +311,59 @@ router.post('/passkey/login/finish', async (req, res) => {
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Passkey-Login (Abschluss) fehlgeschlagen' });
+  }
+});
+
+// MAGIC LINKS
+router.post('/magic/start', async (req, res) => {
+  try {
+    const parse = UsernameSchema.safeParse(req.body);
+    if (!parse.success) return res.status(400).json({ error: parse.error.format() });
+    const { username } = parse.data;
+    const [rows] = await pool.query<UserRow[]>('SELECT id, name, role, password_hash FROM users WHERE LOWER(name)=LOWER(?) LIMIT 1', [username]);
+    const user: UserRow | null = Array.isArray(rows) && rows.length ? (rows[0] as UserRow) : null;
+    if (!user) return res.status(404).json({ error: 'Benutzer existiert nicht' });
+
+    // Generate token
+    const token = randomBytes(32).toString('base64url');
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+    await pool.query('INSERT INTO magic_tokens (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)', [randomUUID(), user.id, token, expiresAt]);
+
+    const origin = getOrigin(req);
+    const devLink = origin ? `${origin}/?magic=${encodeURIComponent(token)}` : null;
+
+    // TODO: Send email if SMTP configured; for now, return devLink so user can copy
+    return res.json({ ok: true, devLink });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Magic Link Erzeugung fehlgeschlagen' });
+  }
+});
+
+router.post('/magic/verify', async (req, res) => {
+  try {
+    const parse = z.object({ token: z.string().min(10) }).safeParse(req.body);
+    if (!parse.success) return res.status(400).json({ error: parse.error.format() });
+    const { token } = parse.data;
+
+    const now = new Date();
+    const [rows]: any = await pool.query(
+      'SELECT mt.user_id, u.name, u.role FROM magic_tokens mt JOIN users u ON u.id=mt.user_id WHERE mt.token=? AND mt.used_at IS NULL AND mt.expires_at > ? LIMIT 1',
+      [token, now]
+    );
+    const entry = Array.isArray(rows) && rows.length ? rows[0] : null;
+    if (!entry) return res.status(400).json({ error: 'Token ungültig oder abgelaufen' });
+
+    // Mark as used
+    await pool.query('UPDATE magic_tokens SET used_at = NOW() WHERE token=?', [token]);
+
+    const jwt = signToken({ id: entry.user_id, name: entry.name, role: entry.role });
+    try { await pool.query('UPDATE users SET last_seen_changes_at = NOW(), last_login_at = NOW() WHERE id=?', [entry.user_id]); } catch (_) {}
+
+    return res.json({ user: { id: entry.user_id, name: entry.name, role: entry.role }, token: jwt });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Magic Link Verifikation fehlgeschlagen' });
   }
 });
 

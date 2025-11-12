@@ -142,6 +142,21 @@ async function run() {
 
   await conn.query(sql);
 
+  // Magic link tokens table (best-effort)
+  try {
+    await conn.query(`CREATE TABLE IF NOT EXISTS magic_tokens (
+      id VARCHAR(36) PRIMARY KEY,
+      user_id VARCHAR(36) NOT NULL,
+      token VARCHAR(128) NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      used_at TIMESTAMP NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_magic_token (token),
+      KEY idx_magic_user (user_id),
+      CONSTRAINT fk_magic_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
+  } catch (_) {}
+
   // Add last_seen_changes_at to users (best-effort)
   try {
     await conn.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen_changes_at TIMESTAMP NULL");

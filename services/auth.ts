@@ -63,3 +63,18 @@ export async function startPasskeyLogin(username: string): Promise<any> {
 export async function finishPasskeyLogin(userId: string, credential: any): Promise<{ user: User; token: string }> {
   return jsonFetch(`/api/auth/passkey/login/finish`, { method: 'POST', body: JSON.stringify({ userId, credential }) });
 }
+
+// Magic Links
+export async function requestMagicLink(username: string): Promise<{ ok: boolean; devLink?: string }> {
+  return jsonFetch(`/api/auth/magic/start`, {
+    method: 'POST',
+    body: JSON.stringify({ username })
+  });
+}
+
+export async function verifyMagicToken(token: string): Promise<{ user: User; token: string }> {
+  return jsonFetch(`/api/auth/magic/verify`, {
+    method: 'POST',
+    body: JSON.stringify({ token })
+  });
+}

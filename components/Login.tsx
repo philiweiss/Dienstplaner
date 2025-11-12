@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { checkUser } from '../services/auth';
 import { startPasskeyLogin, finishPasskeyLogin } from '../services/auth';
@@ -11,13 +11,46 @@ const Login: React.FC = () => {
     const [password, setPassword] = useState('');
     const [password2, setPassword2] = useState('');
     const [error, setError] = useState('');
+    const [info, setInfo] = useState('');
+    const [magicDevLink, setMagicDevLink] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { loginUsernameOnly, loginWithPassword, setInitialPasswordAndLogin, loginWithToken } = useAuth();
+    const { loginUsernameOnly, loginWithPassword, setInitialPasswordAndLogin, loginWithToken, requestMagicLink, verifyMagicToken, getRememberedUsername, setRememberedUsername } = useAuth();
+
+    // Prefill username from last remembered
+    useEffect(() => {
+        const remembered = getRememberedUsername?.();
+        if (remembered) setUsername(remembered);
+        // Auto-consume magic token from URL (?magic=...)
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('magic');
+        if (token) {
+            (async () => {
+                try {
+                    setLoading(true);
+                    setError('');
+                    setInfo('Anmeldung per Magic Link…');
+                    const ok = await verifyMagicToken(token);
+                    if (!ok) setError('Magic Link ungültig oder abgelaufen.');
+                } finally {
+                    setLoading(false);
+                    setInfo('');
+                    // Clean URL
+                    try {
+                        params.delete('magic');
+                        const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}${window.location.hash || ''}`;
+                        window.history.replaceState({}, '', newUrl);
+                    } catch {}
+                }
+            })();
+        }
+    }, []);
 
     const handleUsernameSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setInfo('');
         setLoading(true);
+        setRememberedUsername?.(username.trim());
         try {
             const info = await checkUser(username.trim());
             if (!info.exists) {
@@ -38,6 +71,29 @@ const Login: React.FC = () => {
             setStep('password');
         } catch (e: any) {
             setError(e?.message || 'Fehler beim Prüfen des Benutzers.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSendMagicLink = async () => {
+        setError('');
+        setInfo('');
+        setMagicDevLink(null);
+        if (!username.trim()) {
+            setError('Bitte geben Sie zuerst Ihren Namen ein.');
+            return;
+        }
+        setLoading(true);
+        try {
+            const res = await requestMagicLink(username.trim());
+            if (res?.ok) {
+                setInfo('Magic Link gesendet. Bitte prüfen Sie Ihr Postfach.');
+                if (res.devLink) setMagicDevLink(res.devLink);
+                setRememberedUsername?.(username.trim());
+            }
+        } catch (e: any) {
+            setError(e?.message || 'Magic Link konnte nicht gesendet werden.');
         } finally {
             setLoading(false);
         }
@@ -162,15 +218,37 @@ const Login: React.FC = () => {
                             </div>
                         </div>
                         {error && <p className="text-red-500 text-sm">{error}</p>}
+                        {info && <p className="text-amber-600 text-sm">{info}</p>}
                         <div className="space-y-3">
                             <button
                                 type="submit"
                                 disabled={loading}
                                 className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${loading ? 'bg-slate-400' : 'bg-slate-700 hover:bg-slate-800'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500`}
                             >
-                                {loading ? 'Prüfen…' : 'Weiter'}
+                                {loading ? 'Prüfen…' : 'Weiter mit Passwort'}
                             </button>
-                            <p className="text-xs text-gray-500 text-center">Geben Sie zunächst Ihren Benutzernamen ein, um sich mit Passkey anzumelden.</p>
+                            <button
+                                type="button"
+                                onClick={handleSendMagicLink}
+                                disabled={loading || !username.trim()}
+                                className={`group relative w-full flex justify-center py-2 px-4 border text-sm font-medium rounded-md ${loading ? 'text-slate-400 border-slate-300' : 'text-slate-700 dark:text-slate-200 border-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+                            >
+                                Magic Link senden
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handlePasskeyLogin}
+                                disabled={loading || !username.trim()}
+                                className={`group relative w-full flex justify-center py-2 px-4 border text-sm font-medium rounded-md ${loading ? 'text-slate-400 border-slate-300' : 'text-slate-700 dark:text-slate-200 border-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+                            >
+                                Mit Passkey anmelden
+                            </button>
+                            {magicDevLink && (
+                                <div className="text-xs text-gray-500">
+                                    <div>Entwickler-Link:</div>
+                                    <a href={magicDevLink} className="break-all underline text-blue-600">{magicDevLink}</a>
+                                </div>
+                            )}
                         </div>
                     </form>
                 )}
