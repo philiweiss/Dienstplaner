@@ -861,6 +861,13 @@ const ScheduleView: React.FC = () => {
                                                         <span className="flex items-center gap-2">
                                                             <Avatar user={assignedUser} size={22} />
                                                             <span>{assignedUser.name}</span>
+                                                            {(() => {
+                                                                const late = getLate(dateString, shiftType.id, assignedUser.id);
+                                                                if (!late) return null;
+                                                                const reasonLabel = (LATE_REASONS as any).find((r: any) => r.key === late.reason)?.label || late.reason;
+                                                                const title = `Kommt später: ${late.arriveTime} (${reasonLabel}${late.note ? ", " + late.note : ''})`;
+                                                                return <span title={title} className="inline-flex items-center gap-1 ml-1 text-amber-700"><ClockIcon className="h-4 w-4" /><span className="text-[11px] font-semibold">{late.arriveTime}</span></span>;
+                                                            })()}
                                                             {isSick && <span className="px-1 py-0.5 text-[10px] rounded bg-red-200 text-red-900">Krank</span>}
                                                             {hasBirthday && <span title="Geburtstag" className="ml-1">🎂</span>}
                                                             {hasAnniversary && <span title="Jubiläum" className="ml-0.5">🎉</span>}
