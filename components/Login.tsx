@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { checkUser } from '../services/auth';
-import { startPasskeyLogin, finishPasskeyLogin } from '../services/auth';
 
 type Step = 'username' | 'password' | 'setPassword';
 
@@ -11,10 +10,8 @@ const Login: React.FC = () => {
     const [password, setPassword] = useState('');
     const [password2, setPassword2] = useState('');
     const [error, setError] = useState('');
-    const [info, setInfo] = useState('');
-    const [magicDevLink, setMagicDevLink] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
-    const { loginUsernameOnly, loginWithPassword, setInitialPasswordAndLogin, loginWithToken, requestMagicLink, verifyMagicToken, getRememberedUsername, setRememberedUsername } = useAuth();
+    const { loginUsernameOnly, loginWithPassword, setInitialPasswordAndLogin, getRememberedUsername, setRememberedUsername } = useAuth();
 
     // Prefill username from last remembered
     useEffect(() => {

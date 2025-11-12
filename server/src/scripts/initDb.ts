@@ -112,6 +112,19 @@ async function run() {
     UNIQUE KEY uk_user_date (user_id, date)
   );
 
+  CREATE TABLE IF NOT EXISTS late_arrivals (
+    id VARCHAR(36) PRIMARY KEY,
+    assignment_id VARCHAR(36) NOT NULL,
+    user_id VARCHAR(36) NOT NULL,
+    arrive_time TIME NOT NULL,
+    reason ENUM('VERKEHR','ARZT','KIND_BETREUUNG','OEFFIS','WETTER','SONSTIGES') NOT NULL,
+    note VARCHAR(500) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_la_assignment FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,
+    CONSTRAINT fk_la_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY uk_late_unique (assignment_id, user_id)
+  );
+
   CREATE TABLE IF NOT EXISTS day_notes (
     date DATE PRIMARY KEY,
     note VARCHAR(1000) NOT NULL,
