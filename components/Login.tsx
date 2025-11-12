@@ -245,7 +245,6 @@ const Login: React.FC = () => {
                                 {loading ? 'Speichern…' : 'Passwort setzen & anmelden'}
                             </button>
                         </div>
-                        <p className="text-xs text-gray-500">Tipp: Nach dem ersten Login können Sie unter Profil einen Passkey registrieren.</p>
                     </form>
                 )}
 

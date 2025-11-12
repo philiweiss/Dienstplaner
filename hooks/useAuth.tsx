@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 import { User } from '../types';
 import { login as apiLogin, loginPassword as apiLoginPassword, setPassword as apiSetPassword } from '../services/auth';
-import { setAuthToken, getAuthToken } from '../services/api';
+import { setAuthToken } from '../services/api';
 
 interface AuthContextType {
     user: User | null;
@@ -83,7 +83,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     return (
-        <AuthContext.Provider value={{ user, loginUsernameOnly, loginWithPassword, setInitialPasswordAndLogin, requestMagicLink, verifyMagicToken, loginWithToken, getRememberedUsername, setRememberedUsername, logout }}>
+        <AuthContext.Provider value={{ user, loginUsernameOnly, loginWithPassword, setInitialPasswordAndLogin, getRememberedUsername, setRememberedUsername, logout }}>
             {children}
         </AuthContext.Provider>
     );
