@@ -306,13 +306,6 @@ const Profile: React.FC = () => {
         </form>
       </section>
 
-      <section className="bg-white p-6 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-4">Passkey</h3>
-        <p className="text-sm text-gray-600 mb-4">Registrieren Sie einen Passkey, um sich künftig bequemer und sicherer anzumelden.</p>
-        <button onClick={onRegisterPasskey} disabled={loading} className={`px-4 py-2 rounded-md text-white ${loading ? 'bg-slate-400' : 'bg-slate-700 hover:bg-slate-800'}`}>Passkey registrieren</button>
-        {message && <p className="text-green-600 text-sm mt-3">{message}</p>}
-        {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
-      </section>
     </div>
   );
 };
