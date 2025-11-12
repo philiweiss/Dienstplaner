@@ -9,6 +9,7 @@ import * as handoverApi from '../services/handovers';
 import * as absencesApi from '../services/absences';
 import * as dayNotesApi from '../services/dayNotes';
 import * as lateApi from '../services/lateArrivals';
+import type { LateArrival, LateReason } from '../services/lateArrivals';
 
 interface ScheduleContextType {
     users: User[];
@@ -42,6 +43,10 @@ interface ScheduleContextType {
     deleteUser: (id: string) => void;
     getEffectiveShiftLimits: (date: string, shiftTypeId: string) => { minUsers: number; maxUsers: number };
     updateWeekOverride: (input: { year: number; weekNumber: number; shiftTypeId: string; minUsers?: number; maxUsers?: number }) => Promise<void>;
+    lateArrivals: LateArrival[];
+    getLate: (date: string, shiftTypeId: string, userId: string) => LateArrival | undefined;
+    addLateArrival: (input: { date: string; shiftTypeId: string; userId: string; arriveTime: string; reason: LateReason; note?: string | null }) => Promise<void>;
+    removeLateArrival: (id: string) => Promise<void>;
 }
 
 const ScheduleContext = createContext<ScheduleContextType | undefined>(undefined);
@@ -57,6 +62,7 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [weekOverrides, setWeekOverrides] = useState<WeekShiftOverride[]>([]);
     const [absences, setAbsences] = useState<Absence[]>([]);
     const [dayNotes, setDayNotes] = useState<DayNote[]>([]);
+    const [lateArrivals, setLateArrivals] = useState<LateArrival[]>([]);
 
     // Load users, assignments, week configs, shift types, and absences from backend on mount
     useEffect(() => {
@@ -98,6 +104,12 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
                     setDayNotes(notes);
                 } catch (e) {
                     console.error('[useSchedule] Failed to load day notes from API', e);
+                }
+                try {
+                    const lates = await lateApi.list(fmt(start), fmt(end));
+                    setLateArrivals(lates);
+                } catch (e) {
+                    console.error('[useSchedule] Failed to load late arrivals from API', e);
                 }
             } catch (e) {
                 console.error('[useSchedule] Failed to load assignments from API', e);
@@ -491,6 +503,35 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
         })();
     };
 
+    // Late arrivals helpers
+    const getLate = (date: string, shiftTypeId: string, userId: string): LateArrival | undefined =>
+        lateArrivals.find(l => l.date === date && l.shiftTypeId === shiftTypeId && l.userId === userId);
+
+    const addLateArrival = async (input: { date: string; shiftTypeId: string; userId: string; arriveTime: string; reason: LateReason; note?: string | null }) => {
+        try {
+            const created = await lateApi.create(input);
+            setLateArrivals(prev => {
+                const others = prev.filter(l => !(l.assignmentId === created.assignmentId && l.userId === created.userId));
+                return [...others, created];
+            });
+        } catch (e) {
+            console.error('[useSchedule] Failed to create late arrival', e);
+            throw e;
+        }
+    };
+
+    const removeLateArrival = async (id: string) => {
+        const prev = lateArrivals;
+        setLateArrivals(prev => prev.filter(l => l.id !== id));
+        try {
+            await lateApi.remove(id);
+        } catch (e) {
+            console.error('[useSchedule] Failed to delete late arrival', e);
+            setLateArrivals(prev);
+            throw e;
+        }
+    };
+
     return (
         <ScheduleContext.Provider value={{
             users,
@@ -523,7 +564,11 @@ export const ScheduleProvider: React.FC<{ children: ReactNode }> = ({ children }
             updateUser,
             deleteUser,
             getEffectiveShiftLimits,
-            updateWeekOverride
+            updateWeekOverride,
+            lateArrivals,
+            getLate,
+            addLateArrival,
+            removeLateArrival,
         }}>
             {children}
         </ScheduleContext.Provider>
