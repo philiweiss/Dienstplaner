@@ -3,9 +3,8 @@ import { pool } from '../db.js';
 import { z } from 'zod';
 import type { RowDataPacket } from 'mysql2/promise';
 import bcrypt from 'bcryptjs';
-import { signToken, requireAuth } from '../middleware/auth.js';
-import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { randomUUID, randomBytes } from 'crypto';
+import { signToken } from '../middleware/auth.js';
+import { randomUUID } from 'crypto';
 
 const router = Router();
 
